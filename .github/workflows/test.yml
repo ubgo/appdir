@@ -47,6 +47,35 @@ jobs:
         if: ${{ !cancelled() }}
         run: go test -count=1 ./...
 
+      # The platform tests again with -v, so the log proves they ran on this
+      # OS and did not skip. Allowed skips (optional by design):
+      #   TestWinUNCHome                    \\localhost\<drive>$ share not reachable
+      #   TestDarwinSocketFallbackLiteralTmp run/ path short enough, no fallback
+      # Any other SKIP fails the step, and the OS's own tests (TestWin* on
+      # Windows, TestDarwin* on macOS) must show at least one PASS.
+      - name: platform tests (proof they ran)
+        if: ${{ !cancelled() }}
+        run: |
+          go test -count=1 -v -run '^(TestWin|TestDarwin|TestNoProcessStart$|TestAtomicWriteOverExisting$|TestForTestPointsTempIntoRoot$)' . | tee platform.log
+          go test -count=1 -v -run '^TestTryLockAcrossProcesses$' ./internal/flock/ | tee -a platform.log
+          echo "== summary"
+          grep -E -- '^--- (PASS|SKIP|FAIL)' platform.log
+          allowed='TestWinUNCHome|TestDarwinSocketFallbackLiteralTmp'
+          if grep -E -- '^--- SKIP' platform.log | grep -vE -- "--- SKIP: ($allowed) "; then
+            echo "a platform test skipped that must run on $RUNNER_OS"; exit 1
+          fi
+          for t in TestNoProcessStart TestAtomicWriteOverExisting TestForTestPointsTempIntoRoot TestTryLockAcrossProcesses; do
+            grep -q -- "^--- PASS: $t " platform.log || { echo "$t did not pass"; exit 1; }
+          done
+          case "$RUNNER_OS" in
+            Windows) own=TestWin ;;
+            macOS) own=TestDarwin ;;
+            *) own= ;;
+          esac
+          if [ -n "$own" ] && ! grep -q -- "^--- PASS: $own" platform.log; then
+            echo "no $own test passed on $RUNNER_OS"; exit 1
+          fi
+
       # The same set as `task test:race:concurrency`: only the packages with
       # real concurrency. The race detector runs on linux/amd64,
       # darwin/amd64, darwin/arm64 and windows/amd64, so every runner here.
