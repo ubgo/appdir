@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -148,6 +149,12 @@ func TestFixF8_EnsureSocketDirCreatesRun(t *testing.T) {
 // F8/F20: on a Unix fallback EnsureSocketDir creates both the private
 // fallback folder and run/, where the daemon writes run/socket.
 func TestFixF8_EnsureSocketDirFallbackCreatesRun(t *testing.T) {
+	// Only Linux has a fallback folder that can sit inside the test root
+	// (XDG_RUNTIME_DIR). On macOS it is the real /tmp, and merely resolving
+	// it panics in a test binary (the guard); Windows uses a named pipe.
+	if runtime.GOOS != "linux" {
+		t.Skip("the XDG_RUNTIME_DIR fallback is Linux only")
+	}
 	root, home, proj := bxSetup(t)
 	xdg := filepath.Join(root, "xdg-run")
 	if err := os.MkdirAll(xdg, 0o700); err != nil {

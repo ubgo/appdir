@@ -1,4 +1,4 @@
-# docsync refs format=2 extract=1 repo=appdir commit=267ab3f scanned_at=2026-11-13T06:12:50Z
+# docsync refs format=2 extract=1 repo=appdir commit=440de32 scanned_at=2026-11-13T06:21:13Z
 id	repo	doc	line	verb	carrier	acked_hash	seen_hash	sentence_hash	env	args
 dirs-walk-5dgdy46j	appdir	docs/choosing/finding-the-home.md	13	block	link	d3cfbc90d37fef05320d996612391a19d4074b241288f80423cbf92a9c11daff	90da9d2e3864d49cb490f108061abcfca6bfc41eeea7aa615babe02dd129df3e	654a6299bdbc7e8557e6a76a99ade5a2789768f76e7a1eb4a0d1c878c8074e86		id=dirs-walk-5dgdy46j
 dirs-ceilings-7ypck9dn	appdir	docs/choosing/finding-the-home.md	25	block	link	971f3a23edc069380858ba39e2426442e9adab057ac2a470ab8dd2e58e78cc0f	42ebdba71d1a664265ab64989093ea737b7cee384eb6a24e5435326507afcf90	a5d0897a6353a440d69c17fa726b4244f120d1e7a911eaea57d686398e88e4cc		id=dirs-ceilings-7ypck9dn
