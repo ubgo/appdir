@@ -25,6 +25,33 @@ Files ending in `_unix.go` build on macOS, Linux and the BSDs; `_windows.go` on 
 
 `<name>` is `Name(app)`: the app name for the release profile, `<app>-<profile>` for another one. `<hash>` is the first 12 hex characters of the SHA-256 of the real path of `run/`, so two homes of one app never share a socket ([platformSocket on Unix](ds:block?id=dirs-platformsocket-5kfqqv9a), [on Windows](ds:block?id=dirs-platformsocket-cj45m675)).
 
+## Proven on real OSes
+
+[Run 43378905306](https://github.com/ubgo/appdir/actions/runs/43378905306) of the manual [real-OS test workflow](../testing/ci.md) (commit `fc6202e`) passed on ubuntu-latest, windows-latest, macos-latest (Apple silicon) and macos-15-intel. Its proof step lists every platform test as PASS, none skipped. "All four" below means all four runners.
+
+| Row | Proven on | Tests |
+|---|---|---|
+| Global home | all four; `%USERPROFILE%` on Windows | the whole suite; `TestWinUserProfileIsHome` |
+| Owner-only folders and files | all four: mode bits on Linux and macOS, the protected ACL (user and SYSTEM only) on Windows | the layout tests' mode checks; `TestWinOwnerOnlyACL` |
+| Stop the lookup at a disk change | all four; on Windows also a missing start folder, a drive letter in the other case, and worktree-only subfolders | `TestWinDeviceIDMissingPath`, `TestWinDriveLetterCase`, `TestResolveWorktreeMatrix`, `TestLegacyXDisk_Move` |
+| Locks | all four, between two real processes | `TestTryLockAcrossProcesses` |
+| Atomic write | all four, over an existing file (MoveFileEx with replace on Windows) | `TestAtomicWriteOverExisting`, `TestWinAtomicWriteReplacesExisting` |
+| Socket | named pipe on Windows; literal `/tmp` fallback and a real listener in `run/` on macOS; `$XDG_RUNTIME_DIR` fallback on Linux | `TestWinNamedPipeShape`, `TestDarwinSocketFallbackLiteralTmp`, `TestDarwinSocketListensWhereItFits`, the runtime socket tests |
+| Symlinks | macOS `/var` vs `/private/var` for the walk-up, the `$HOME` wall and ceilings | `TestDarwinPrivateVarWalk`, `TestDarwinCeilingOtherSpelling` |
+| Temp and socket fallback folder | all four, including `ErrUnsafeTemp` for a file in the way | `TestLayoutTempFallback`, `TestForTestPointsTempIntoRoot`, `TestDarwinForTestShortRoot` |
+| User in folder names | Windows user name in the pipe and temp folder names | `TestWinNamedPipeShape`, `TestLayoutTempFallback` |
+| Legacy move across disks | all four, onto a second filesystem (tmpfs, RAM disk, `D:`), including crash recovery | `TestLegacyXDisk_Move`, `TestLegacyXDisk_CrashRecovery` |
+| No service install (appdir starts no process) | all four | `TestNoProcessStart` |
+
+Rows still unproven, and why:
+
+- The atomic-write retry when antivirus or the indexer holds the target: no test holds a sharing lock on the target.
+- Windows junctions in the symlink check: no test makes a junction.
+- Long paths over 260 characters on Windows: no test builds one.
+- Cache exclusions (the macOS `tmutil` exclusion and the Windows "not content indexed" attribute): they run, but no test reads them back.
+- The root and sudo guard: the runners do not run tests as root, so those cases skip.
+- Network folder check and service install: appdir does not do these.
+
 ## What differs on Windows
 
 - **Permissions are an ACL.** `WithPerm` has no effect; every folder and file appdir creates gets a protected DACL with two entries (the current user's SID and SYSTEM, full access), and inheritance from the parent is turned off. See [Files and permissions](../layout/files-and-permissions.md).

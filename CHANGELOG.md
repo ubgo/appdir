@@ -6,16 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-13
+
 ### Fixed
 
-- Windows: the project walk-up no longer stops at the first existing parent when it starts in a folder that does not exist yet (a worktree-only subfolder looked up in the main checkout). A missing folder now has no volume id, as on Unix; a folder that cannot be opened gets its volume's real serial instead of a made-up one.
-- Windows: `MoveLegacy` no longer replaces a file that sits where the new home goes (MoveFileEx replaced it with the old folder); like on Unix it fails and leaves both alone.
-- `ForTest` also points `TMP` and `TEMP` into its root, so on Windows the temp fallback no longer lands in the real `%TEMP%`. On macOS its root is under `/tmp`, so a daemon test's socket fits in `run/` instead of falling back to the real `/tmp` and tripping the guard.
-- `MoveLegacy` across disks now follows an old home that is itself a symlink (`~/.<old>` linked to another disk) and copies its contents. Before, the copy took the link alone: the new home became a link back to the old disk, nothing was moved, and the result still said `copied (other disk)`, so deleting the old data afterwards lost it.
+- `MoveLegacy` across disks now follows an old home that is itself a symlink (`~/.<old>` linked to another disk) and copies what it points to. Before, it copied only the link: the new home became a link back to the old disk and nothing moved, yet the result said `copied (other disk)`. Deleting the old data afterwards would have lost it.
+- Windows: the project walk-up no longer stops at the first existing parent when it starts in a folder that does not exist yet (a worktree-only subfolder looked up in the main checkout). A missing folder now has no volume id, as on Unix, and a folder that cannot be opened gets its volume's real serial instead of a made-up one.
+- Windows: `MoveLegacy` no longer replaces a file that sits where the new home goes. MoveFileEx used to put the old folder in its place; now, as on Unix, it fails and leaves both alone.
+- `ForTest` also points `TMP` and `TEMP` into its root, so on Windows the temp fallback no longer lands in the real `%TEMP%`.
+- `ForTest` on macOS makes its root under `/tmp` instead of the long `$TMPDIR`, so a daemon test's socket fits in `run/` instead of falling back to the real `/tmp` and tripping the test guard.
 
 ### Added
 
-- A manual GitHub Actions workflow (`.github/workflows/test.yml`) that runs vet, the tests, the race tests and a cross-disk legacy move on Linux, macOS (Apple silicon and Intel) and Windows; tests for the Windows ACL, cross-process locks, atomic replace, drive-letter and UNC paths, `USERPROFILE`, the named pipe, and the macOS `/private/var` temp folders and socket fallback.
+- A GitHub Actions workflow you start by hand (`.github/workflows/test.yml`; it has no automatic triggers). It runs vet, the tests, the race tests, a proof step for the platform tests and a cross-disk legacy move on ubuntu-latest, windows-latest, macos-latest and macos-15-intel.
+- A cross-disk legacy move test, `TestLegacyXDisk_Move` and `TestLegacyXDisk_CrashRecovery`. It runs only when `APPDIR_TEST_SECOND_DISK` names a folder on another filesystem.
+- Platform tests: the Windows owner-only ACL, atomic replace, drive-letter case, UNC home, `USERPROFILE`, named pipe, volume id of a missing folder, and legacy move over a file; on macOS the `/var` vs `/private/var` walk-up and ceilings, the `/tmp` socket fallback, a real socket listener and the `ForTest` root; on every OS lock contention between two processes, no process start, atomic write over a file and the `ForTest` temp folder.
+
+### Documentation
+
+- [Real-OS test workflow](docs/testing/ci.md): running the workflow by hand, the proof step and `APPDIR_TEST_SECOND_DISK`. There is a workflow badge in the README.
+- [Platforms](docs/reference/platforms.md): which rows are proven on real OSes, the test behind each, the run that proved them, and why the other rows are not proven yet. Also: a Windows legacy move cannot rename an old home while a file in it is open.
+- The legacy move guide and SPEC section 9 cover a symlinked old home and a non-folder at the new home path. SPEC section 10 and the testing guide cover the `ForTest` temp variables and the macOS root.
+- Example output uses forward slashes on every OS.
 
 ## [0.1.0] - 2026-11-13
 

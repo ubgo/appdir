@@ -16,12 +16,13 @@ or with the "Run workflow" button on the Actions tab. Do not add automatic trigg
 
 ## What each job runs
 
-Every job (ubuntu-latest, macos-latest, macos-15-intel, windows-latest; `fail-fast: false`, Go from `go.mod`):
+Every job (ubuntu-latest, macos-latest, macos-15-intel, windows-latest; `fail-fast: false`, Go from `go.mod`) runs these steps. macos-latest is Apple silicon; the Intel image is macos-15-intel, because GitHub retired macos-13 in December 2025. Every step after setup runs even when an earlier one failed, so one run reports every failure.
 
 1. `go vet ./...`
 2. `go test -count=1 ./...`: the library, `internal/flock`, `internal/jsonclite` and every example. The OS-only tests live in `platform_windows_test.go` and `platform_darwin_test.go`; `internal/flock/flock_process_test.go` re-runs the test binary as a second process that holds the lock.
 3. The race set of `task test:race:concurrency`: `go test -race` on `internal/flock` and on `-run 'Legacy|Lock|Concurren'` in the root package.
-4. A second filesystem, then `go test -count=1 -run XDisk -v .`. The step fails when no `XDisk` test passed or one was skipped, so the log proves the cross-disk move ran.
+4. The platform tests again with `-v` (the proof step): `TestWin*`, `TestDarwin*`, `TestNoProcessStart`, `TestAtomicWriteOverExisting`, `TestForTestPointsTempIntoRoot` and `TestTryLockAcrossProcesses`. The step prints a PASS/SKIP summary. It fails when a test skips that must run on that OS, or when no `TestWin*` (Windows) or `TestDarwin*` (macOS) test passes. Two skips are allowed: `TestWinUNCHome` when the `\\localhost\<drive>$` share cannot be reached, and `TestDarwinSocketFallbackLiteralTmp` when `run/` is short enough that there is no fallback.
+5. A second filesystem, then `go test -count=1 -run XDisk -v .`. The step fails when no `XDisk` test passed or one was skipped, so the log proves the cross-disk move ran.
 
 ## The second disk: APPDIR_TEST_SECOND_DISK
 
