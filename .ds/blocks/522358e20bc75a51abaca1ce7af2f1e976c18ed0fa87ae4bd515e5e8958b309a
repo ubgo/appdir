@@ -1,0 +1,20 @@
+func (d *Dirs) lookupProject(start string) (string, Rule) {
+	if root := d.repoRoot(start); root != "" {
+		if main := linkedWorktreeMain(root); main != "" {
+			rel, err := filepath.Rel(root, start)
+			if err == nil {
+				if m := d.findMarker(filepath.Join(main, rel)); m != "" {
+					return m, RuleWorktree
+				}
+				// Warn only when the worktree's own home is what gets used:
+				// with no home in either place the warning names nothing real.
+				m := d.findMarker(start)
+				if m != "" {
+					d.warn(WarnWorktreeMainMissing, fmt.Sprintf("linked worktree of %s, but the main checkout has no %s; using the worktree", main, d.cfg.dirName))
+				}
+				return m, RuleProject
+			}
+		}
+	}
+	return d.findMarker(start), RuleProject
+}

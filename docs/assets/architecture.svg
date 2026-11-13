@@ -1,0 +1,137 @@
+<svg viewBox="8 0 984 830" width="984" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#22c55e"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#a855f7"/>
+    </marker>
+  </defs>
+  <!-- White canvas so the light palette stays readable on a dark GitHub page. -->
+  <rect x="8" y="0" width="984" height="830" fill="#ffffff"/>
+  <text x="500" y="34" font-size="16" fill="#1e293b" text-anchor="middle">appdir: how a tool finds where its files live</text>
+  <rect x="56" y="54" width="660" height="78" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="66" y="69" font-size="11" fill="#64748b">Callers</text>
+  <rect x="56" y="177" width="660" height="96" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="66" y="192" font-size="11" fill="#64748b">Inputs</text>
+  <rect x="56" y="318" width="660" height="96" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="66" y="333" font-size="11" fill="#64748b">Resolution inside New (reads only, creates nothing)</text>
+  <rect x="56" y="459" width="660" height="175" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="66" y="474" font-size="11" fill="#64748b">Results on *Dirs, and writes only when asked</text>
+  <rect x="56" y="679" width="660" height="96" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="66" y="694" font-size="11" fill="#64748b">Filesystem</text>
+  <rect x="780" y="177" width="190" height="598" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="790" y="192" font-size="11" fill="#64748b">Seams and operations</text>
+  <path d="M386,137 L 386,166" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="400" y="158" font-size="11" fill="#1e40af" text-anchor="start">1  appdir.New(app, options...)</text>
+  <path d="M386,278 L 386,307" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="400" y="299" font-size="11" fill="#1e40af" text-anchor="start">read through seams, never os.Args</text>
+  <path d="M386,419 L 386,448" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="400" y="440" font-size="11" fill="#1e40af" text-anchor="start">7  immutable *Dirs</text>
+  <path d="M386,639 L 386,668" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="400" y="660" font-size="11" fill="#1e40af" text-anchor="start">8  lazy writes: folders 0700, files 0600</text>
+  <path d="M51,512 Q 32,512 32,492 L 32,126 Q 32,106 45,106" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="72" y="158" font-size="11" fill="#166534" text-anchor="start">paths, each with its Rule, or a typed error</text>
+  <path d="M775,371 L 727,371" fill="none" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+  <text x="748.0" y="357" font-size="10" fill="#6b21a8" text-anchor="middle">options</text>
+  <rect x="72" y="80" width="136" height="36" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="140" y="102" font-size="12" fill="#1e293b" text-anchor="middle">a CLI</text>
+  <rect x="236" y="80" width="136" height="36" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="304" y="102" font-size="12" fill="#1e293b" text-anchor="middle">a daemon</text>
+  <rect x="400" y="80" width="136" height="36" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="468" y="102" font-size="12" fill="#1e293b" text-anchor="middle">a desktop app</text>
+  <rect x="564" y="80" width="136" height="36" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="632" y="102" font-size="12" fill="#1e293b" text-anchor="middle">a test suite</text>
+  <rect x="72" y="203" width="136" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="140" y="225" font-size="12" fill="#1e40af" text-anchor="middle">flags as options</text>
+  <text x="140" y="243" font-size="10" fill="#1e40af" text-anchor="middle">--home, --profile</text>
+  <rect x="236" y="203" width="136" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="304" y="225" font-size="12" fill="#1e40af" text-anchor="middle">env</text>
+  <text x="304" y="243" font-size="10" fill="#1e40af" text-anchor="middle">&lt;APP&gt;_* variables</text>
+  <rect x="400" y="203" width="136" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="468" y="225" font-size="12" fill="#1e40af" text-anchor="middle">working dir</text>
+  <text x="468" y="243" font-size="10" fill="#1e40af" text-anchor="middle">where the command runs</text>
+  <rect x="564" y="203" width="136" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="632" y="225" font-size="12" fill="#1e40af" text-anchor="middle">build info</text>
+  <text x="632" y="243" font-size="10" fill="#1e40af" text-anchor="middle">release or dev build</text>
+  <rect x="72" y="344" width="104" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="124" y="366" font-size="12" fill="#b45309" text-anchor="middle">2 profile</text>
+  <text x="124" y="384" font-size="10" fill="#b45309" text-anchor="middle">prod or dev</text>
+  <rect x="203" y="344" width="104" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="255" y="366" font-size="12" fill="#b45309" text-anchor="middle">3 global home</text>
+  <text x="255" y="384" font-size="10" fill="#b45309" text-anchor="middle">--home or ~/.&lt;app&gt;</text>
+  <rect x="334" y="344" width="104" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="386" y="366" font-size="12" fill="#b45309" text-anchor="middle">4 project home</text>
+  <text x="386" y="384" font-size="10" fill="#b45309" text-anchor="middle">walk-up, worktree</text>
+  <rect x="465" y="344" width="104" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="517" y="366" font-size="12" fill="#b45309" text-anchor="middle">5 pointers</text>
+  <text x="517" y="384" font-size="10" fill="#b45309" text-anchor="middle">home: and db: keys</text>
+  <rect x="596" y="344" width="104" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="648" y="366" font-size="12" fill="#b45309" text-anchor="middle">6 kind path</text>
+  <text x="648" y="384" font-size="10" fill="#b45309" text-anchor="middle">one Rule per path</text>
+  <path d="M181,371 L 192,371" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M312,371 L 323,371" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M443,371 L 454,371" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M574,371 L 585,371" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <rect x="72" y="485" width="136" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="140" y="507" font-size="12" fill="#166534" text-anchor="middle">Global, Project</text>
+  <text x="140" y="525" font-size="10" fill="#166534" text-anchor="middle">homes + Rule</text>
+  <rect x="236" y="485" width="136" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="304" y="507" font-size="12" fill="#166534" text-anchor="middle">Path, Paths</text>
+  <text x="304" y="525" font-size="10" fill="#166534" text-anchor="middle">path + Rule or error</text>
+  <rect x="400" y="485" width="136" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="468" y="507" font-size="12" fill="#166534" text-anchor="middle">ConfigFiles</text>
+  <text x="468" y="525" font-size="10" fill="#166534" text-anchor="middle">read order, later wins</text>
+  <rect x="564" y="485" width="136" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="632" y="507" font-size="12" fill="#166534" text-anchor="middle">Socket, RunPath</text>
+  <text x="632" y="525" font-size="10" fill="#166534" text-anchor="middle">run/ or a fallback</text>
+  <rect x="72" y="564" width="190" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="167" y="586" font-size="12" fill="#9d174d" text-anchor="middle">Ensure(kind)</text>
+  <text x="167" y="604" font-size="10" fill="#9d174d" text-anchor="middle">EnsureSocketDir</text>
+  <rect x="291" y="564" width="190" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="386" y="586" font-size="12" fill="#9d174d" text-anchor="middle">InitProject</text>
+  <text x="386" y="604" font-size="10" fill="#9d174d" text-anchor="middle">InitHome</text>
+  <rect x="510" y="564" width="190" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="605" y="586" font-size="12" fill="#9d174d" text-anchor="middle">WriteGitignore</text>
+  <text x="605" y="604" font-size="10" fill="#9d174d" text-anchor="middle">the .gitignore block</text>
+  <rect x="72" y="705" width="136" height="54" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="140" y="727" font-size="12" fill="#1e293b" text-anchor="middle">~/.&lt;app&gt;</text>
+  <text x="140" y="745" font-size="10" fill="#1e293b" text-anchor="middle">dev build: ~/.&lt;app&gt;-dev</text>
+  <rect x="236" y="705" width="136" height="54" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="304" y="727" font-size="12" fill="#1e293b" text-anchor="middle">project .&lt;app&gt;/</text>
+  <text x="304" y="745" font-size="10" fill="#1e293b" text-anchor="middle">dev: profiles/dev/</text>
+  <rect x="400" y="705" width="136" height="54" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="468" y="727" font-size="12" fill="#1e293b" text-anchor="middle">temp fallback</text>
+  <text x="468" y="745" font-size="10" fill="#1e293b" text-anchor="middle">&lt;tmp&gt;/&lt;app&gt;-&lt;uid&gt;</text>
+  <rect x="564" y="705" width="136" height="54" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="632" y="727" font-size="12" fill="#1e293b" text-anchor="middle">run/&lt;app&gt;.sock</text>
+  <text x="632" y="745" font-size="10" fill="#1e293b" text-anchor="middle">or a per-user fallback</text>
+  <rect x="796" y="203" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="225" font-size="12" fill="#6b21a8" text-anchor="middle">WithKind, WithoutKind</text>
+  <text x="875" y="243" font-size="10" fill="#6b21a8" text-anchor="middle">your own layout</text>
+  <rect x="796" y="287" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="309" font-size="12" fill="#6b21a8" text-anchor="middle">WithLookup, WithMode</text>
+  <text x="875" y="327" font-size="10" fill="#6b21a8" text-anchor="middle">here-only, global tool</text>
+  <rect x="796" y="370" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="392" font-size="12" fill="#6b21a8" text-anchor="middle">WithEnv, WithHomeDir</text>
+  <text x="875" y="410" font-size="10" fill="#6b21a8" text-anchor="middle">seams for tests</text>
+  <rect x="796" y="454" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="476" font-size="12" fill="#6b21a8" text-anchor="middle">ForTest(t, app)</text>
+  <text x="875" y="494" font-size="10" fill="#6b21a8" text-anchor="middle">temp root + test guard</text>
+  <rect x="796" y="538" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="560" font-size="12" fill="#6b21a8" text-anchor="middle">CheckDB(path)</text>
+  <text x="875" y="578" font-size="10" fill="#6b21a8" text-anchor="middle">dev never opens prod db</text>
+  <rect x="796" y="621" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="643" font-size="12" fill="#6b21a8" text-anchor="middle">MoveLegacy(ctx)</text>
+  <text x="875" y="661" font-size="10" fill="#6b21a8" text-anchor="middle">old home to new, once</text>
+  <rect x="796" y="705" width="158" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="875" y="727" font-size="12" fill="#6b21a8" text-anchor="middle">Paths as JSON</text>
+  <text x="875" y="745" font-size="10" fill="#6b21a8" text-anchor="middle">paths --json, doctor</text>
+  <text x="500.0" y="805" font-size="10" fill="#64748b" text-anchor="middle">Blue: the call, steps 1 to 8.  Green: what comes back.  Purple: options and operations around the core.</text>
+</svg>

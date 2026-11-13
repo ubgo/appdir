@@ -1,0 +1,29 @@
+func (d *Dirs) CheckDB(path string) (DBAccess, error) {
+	// A relative path is relative to the working folder New resolved from
+	// (WithWorkDir), so the guard checks the same file the tool opens.
+	abs := filepath.Clean(path)
+	if !filepath.IsAbs(abs) {
+		abs = filepath.Join(d.workDir, abs)
+	}
+	if err := d.VerifyFile(abs); err != nil {
+		return AccessReadWrite, err
+	}
+	if d.release {
+		return AccessReadWrite, nil
+	}
+	prod, err := d.prodView()
+	if err != nil {
+		return AccessReadWrite, err
+	}
+	for _, s := range []Scope{ScopeGlobal, ScopeProject} {
+		cand, err := prod.PathIn(KindDB, s)
+		if err != nil || cand == "" || !sameDBPath(abs, cand) {
+			continue
+		}
+		if d.allowProd {
+			return AccessReadOnly, nil
+		}
+		return AccessReadWrite, newErr(ErrProdDB, "dev build refuses the prod database %s; set %s=1 to open it read-only", abs, d.cfg.envName(envAllowProd))
+	}
+	return AccessReadWrite, nil
+}

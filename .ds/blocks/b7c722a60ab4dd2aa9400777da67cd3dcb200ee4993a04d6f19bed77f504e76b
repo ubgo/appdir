@@ -1,0 +1,20 @@
+func (d *Dirs) checkWrite(homeRoot string, info *HomeInfo) error {
+	if info != nil && info.Layout > d.cfg.layoutVersion {
+		return newErr(ErrLayoutTooNew, "home %s has layout %d, this binary knows %d; upgrade %s", homeRoot, info.Layout, d.cfg.layoutVersion, d.cfg.app)
+	}
+	if !isRoot() || d.cfg.allowRoot || homeRoot == "" {
+		return nil
+	}
+	p := homeRoot
+	for !exists(p) {
+		parent := filepath.Dir(p)
+		if parent == p {
+			return nil
+		}
+		p = parent
+	}
+	if uid, ok := ownerUID(p); ok && uid != 0 {
+		return newErr(ErrRootOwned, "running as root but %s belongs to uid %d; pass --allow-root", p, uid)
+	}
+	return nil
+}

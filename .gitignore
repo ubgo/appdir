@@ -1,0 +1,40 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+bin/
+
+# Test + coverage outputs
+*.test
+*.out
+cover.out
+cover.html
+coverage.*
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go workspace local files
+go.work.sum
+
+# Build artifacts
+dist/
+build/
+
+# Private coordinator state for the docs job (never committed)
+DOCS_STATUS.md
+# Private coordinator state for the finalize job (never committed)
+FINAL_STATUS.md
+# Private coordinator state for the docs pass 2 job (never committed)
+DOCS2_STATUS.md
+# Private coordinator state for the development job (never committed)
+STATUS.md

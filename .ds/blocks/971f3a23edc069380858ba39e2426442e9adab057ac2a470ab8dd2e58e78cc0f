@@ -1,0 +1,9 @@
+func (d *Dirs) ceilings() []string {
+	var out []string
+	for _, part := range filepath.SplitList(d.env(envCeilingDirs)) {
+		if p, _, _ := d.ceilingEntry(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}

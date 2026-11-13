@@ -1,0 +1,13 @@
+func portablePointer(raw string) bool {
+	if strings.HasPrefix(raw, "~/") || strings.HasPrefix(raw, `~\`) {
+		return true
+	}
+	if strings.HasPrefix(raw, "~") || strings.HasPrefix(raw, "$") ||
+		strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, `\`) {
+		return false
+	}
+	if len(raw) >= 2 && raw[1] == ':' { // C:\ or C:/ on any OS
+		return false
+	}
+	return !filepath.IsAbs(raw)
+}

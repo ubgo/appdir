@@ -1,0 +1,15 @@
+func (d *Dirs) platformSocket(s Socket, hash string) Socket {
+	if len(s.Path) <= d.cfg.socketMaxLen {
+		return s
+	}
+	name := d.Name(d.cfg.app)
+	dir := filepath.Join("/tmp", name+"-"+currentUser())
+	if runtime.GOOS == "linux" {
+		if xdg, ok := d.cfg.lookupEnv("XDG_RUNTIME_DIR"); ok && filepath.IsAbs(xdg) && isDir(xdg) {
+			dir = filepath.Join(xdg, name)
+		}
+	}
+	s.Dir, s.Fallback = dir, true
+	s.Path = filepath.Join(dir, hash+".sock")
+	return s
+}

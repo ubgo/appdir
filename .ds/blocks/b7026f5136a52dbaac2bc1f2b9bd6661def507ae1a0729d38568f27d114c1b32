@@ -1,0 +1,41 @@
+func ForTest(t testing.TB, app string) string {
+	t.Helper()
+	root := t.TempDir()
+	if r, err := filepath.EvalSymlinks(root); err == nil {
+		root = r
+	}
+	prefix := envPrefixFor(app)
+	set := map[string]string{
+		"HOME":              filepath.Join(root, "home"),
+		"USERPROFILE":       filepath.Join(root, "home"),
+		prefix + "_HOME":    filepath.Join(root, "apphome"),
+		"XDG_CONFIG_HOME":   filepath.Join(root, "xdg", "config"),
+		"XDG_DATA_HOME":     filepath.Join(root, "xdg", "data"),
+		"XDG_STATE_HOME":    filepath.Join(root, "xdg", "state"),
+		"XDG_CACHE_HOME":    filepath.Join(root, "xdg", "cache"),
+		"XDG_RUNTIME_DIR":   filepath.Join(root, "xdg", "run"),
+		"CLAUDE_CONFIG_DIR": filepath.Join(root, "claude"),
+		"CODEX_HOME":        filepath.Join(root, "codex"),
+		"TMPDIR":            filepath.Join(root, "tmp"),
+		envTestRoot:         root,
+	}
+	for k, v := range set {
+		if err := os.MkdirAll(v, 0o700); err != nil && k != envTestRoot {
+			t.Fatalf("appdir.ForTest: %v", err)
+		}
+		t.Setenv(k, v)
+	}
+	unset := []string{prefix + "_PROFILE", "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES"}
+	for _, kv := range os.Environ() {
+		if k, _, _ := strings.Cut(kv, "="); strings.HasPrefix(k, "GIT_CONFIG") {
+			unset = append(unset, k)
+		}
+	}
+	for _, k := range unset {
+		t.Setenv(k, "") // registers the restore at cleanup
+		if err := os.Unsetenv(k); err != nil {
+			t.Fatalf("appdir.ForTest: %v", err)
+		}
+	}
+	return root
+}

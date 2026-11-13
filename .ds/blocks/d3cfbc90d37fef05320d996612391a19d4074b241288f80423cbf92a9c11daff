@@ -1,0 +1,39 @@
+func (d *Dirs) walk(start string, visit func(dir string) bool) {
+	ceilings := d.ceilings()
+	dir := start
+	dev, devOK := deviceID(dir)
+	for {
+		if visit(dir) {
+			return
+		}
+		// $HOME is a wall in both directions: the parent check below stops
+		// before entering it, and this one stops after visiting it when the
+		// walk started there, so a folder above $HOME is never a project.
+		if d.userHomeErr == nil && sameFile(dir, d.userHome) {
+			return
+		}
+		// A ceiling is a wall the same way (git's GIT_CEILING_DIRECTORIES):
+		// a walk that starts inside one checks it, then never climbs above.
+		for _, c := range ceilings {
+			if sameFile(dir, c) {
+				return
+			}
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return
+		}
+		if d.userHomeErr == nil && sameFile(parent, d.userHome) {
+			return
+		}
+		for _, c := range ceilings {
+			if sameFile(parent, c) {
+				return
+			}
+		}
+		if pdev, ok := deviceID(parent); ok && devOK && pdev != dev {
+			return
+		}
+		dir = parent
+	}
+}

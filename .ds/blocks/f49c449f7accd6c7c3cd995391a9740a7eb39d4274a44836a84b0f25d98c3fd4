@@ -1,0 +1,27 @@
+func linkedWorktreeMain(root string) string {
+	gitPath := filepath.Join(root, gitEntry)
+	fi, err := os.Lstat(gitPath)
+	if err != nil || fi.IsDir() {
+		return ""
+	}
+	gitdir := readGitdirLine(gitPath)
+	if gitdir == "" {
+		return ""
+	}
+	if !filepath.IsAbs(gitdir) {
+		gitdir = filepath.Join(root, gitdir)
+	}
+	b, err := os.ReadFile(filepath.Join(gitdir, "commondir"))
+	if err != nil {
+		return "" // a submodule: its gitdir has no commondir, so it is its own project
+	}
+	common := strings.TrimSpace(string(b))
+	if !filepath.IsAbs(common) {
+		common = filepath.Join(gitdir, common)
+	}
+	common = filepath.Clean(common)
+	if filepath.Base(common) != gitEntry {
+		return "" // bare main repo: no checkout to share
+	}
+	return filepath.Dir(common)
+}
