@@ -208,6 +208,7 @@ ok  	github.com/ubgo/appdir/examples/testing-setup	0.008s
 
 ## Related
 
+- [Real-OS test workflow](ci.md): the manual workflow and `APPDIR_TEST_SECOND_DISK`
 - [Release detection](../profiles/release-detection.md): `WithBuildInfo`.
 - [Options reference](../reference/options.md): every seam.
 - Example: [examples/testing-setup](../../examples/testing-setup).

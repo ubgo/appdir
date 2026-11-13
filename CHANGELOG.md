@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `MoveLegacy` across disks now follows an old home that is itself a symlink (`~/.<old>` linked to another disk) and copies its contents. Before, the copy took the link alone: the new home became a link back to the old disk, nothing was moved, and the result still said `copied (other disk)`, so deleting the old data afterwards lost it.
+
+### Added
+
+- A manual GitHub Actions workflow (`.github/workflows/test.yml`) that runs vet, the tests, the race tests and a cross-disk legacy move on Linux, macOS (Apple silicon and Intel) and Windows; tests for the Windows ACL, cross-process locks, atomic replace, drive-letter and UNC paths, `USERPROFILE`, the named pipe, and the macOS `/private/var` temp folders and socket fallback.
+
 ## [0.1.0] - 2026-11-13
 
 First release.

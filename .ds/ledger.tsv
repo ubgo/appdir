@@ -1,4 +1,4 @@
-# docsync ledger format=2 extract=1 repo=appdir commit=b8e3f23 scanned_at=2026-11-13T05:17:57Z
+# docsync ledger format=2 extract=1 repo=appdir commit=9a99b7e scanned_at=2026-11-13T05:47:05Z
 id	repo	kind	file	symbol	lines	hash	owner	stability	env	args
 buildkinds-r6jj6d5s	appdir	func	kinds.go	buildKinds	78-126	0b002b55f5a4f9bf6f2ba16d97aa01460120301f692be1a96871806f0998e78a	@khanakia	stable		id=buildkinds-r6jj6d5s owner=@khanakia stability=stable
 cleanenv-276nsr8w	appdir	func	profile.go	CleanEnv	207-216	46d41a237787a874eb8f43d297fb34bc882c4167d9d4968cef465d910cffad1e	@khanakia	stable		id=cleanenv-276nsr8w owner=@khanakia stability=stable

@@ -91,6 +91,7 @@ Read in this order to go from a first call to a tool that is ready for productio
 ### Testing
 
 - [Testing setup](testing/for-test.md): seams, `ForTest`, the test-binary guard.
+- [Real-OS test workflow](testing/ci.md): running the manual workflow, `APPDIR_TEST_SECOND_DISK`.
 
 ### Choosing
 

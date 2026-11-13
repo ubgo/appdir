@@ -194,7 +194,14 @@ func sameDevice(a, b string) bool {
 
 // copyTree copies files, folders and symlinks (as links), keeping modes;
 // sockets and pipes are live state and are skipped. Returns files and bytes.
+// src itself is followed when it is a symlink (an old home linked to another
+// disk): otherwise WalkDir would copy the link alone and the new home would
+// point back at the old disk with nothing moved. Links inside the tree are
+// still copied as links.
 func copyTree(ctx context.Context, src, dst string) (int, int64, error) {
+	if real, err := filepath.EvalSymlinks(src); err == nil {
+		src = real
+	}
 	var n int
 	var size int64
 	err := filepath.WalkDir(src, func(p string, de fs.DirEntry, err error) error {

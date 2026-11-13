@@ -718,7 +718,7 @@ A build is a release when:
 4. Re-check step 2 under the lock (another process may have finished).
 5. Probe each `DaemonLocks` file in old that exists (never create one). Held → `ErrBusy` ("try again next run").
 6. Same disk (device id): `rename(old, new)`.
-7. Other disk: copy old into `<new>.moving-tmp` (files, folders, symlinks as links, modes kept; sockets and pipes skipped), write `.legacy-move` (old path) into it, verify file count and bytes plus `WithLegacyVerify`, rename it to new, rename old to `<old>.moved-<YYYYMMDD>`, then remove `.legacy-move`.
+7. Other disk: copy old into `<new>.moving-tmp` (old itself followed when it is a symlink, so a `~/.<old>` linked to another disk moves its contents, not the link; inside it files, folders, symlinks as links, modes kept; sockets and pipes skipped), write `.legacy-move` (old path) into it, verify file count and bytes plus `WithLegacyVerify`, rename it to new, rename old to `<old>.moved-<YYYYMMDD>`, then remove `.legacy-move`.
 8. Recreate old as a folder holding only `MOVED.txt` ("moved to <new>"). Never delete user data.
 
 Crash safety: a same-disk rename is atomic. A crash during a cross-disk copy leaves `<new>.moving-tmp`, which the next run deletes (it is our copy; old is intact) before starting again. A crash after `tmp → new` leaves `.legacy-move` in new; the next run sees it and finishes steps 7–8 instead of reporting both-exist. A crash after old was renamed to `<old>.moved-<date>` leaves no old folder and `.legacy-move` (holding the old path) still in new; the next run matches that path, removes the marker and writes `MOVED.txt` (`MoveDone`) instead of reporting `MoveNone` forever.

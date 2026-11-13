@@ -1,5 +1,7 @@
 # appdir
 
+[![test](https://github.com/ubgo/appdir/actions/workflows/test.yml/badge.svg)](https://github.com/ubgo/appdir/actions/workflows/test.yml)
+
 Where a Go tool keeps its things: the global home (`~/.<app>`), the project home (`.<app>/`, found by walking up), the files and folders inside them, the prod/dev profile split, pointer keys, and moving an old home. Every path comes with the rule that picked it, so `paths --json` and `doctor` can say why.
 
 Standard library only; macOS, Linux, Windows. A `*Dirs` is immutable and safe for concurrent use: resolve once, share it everywhere.

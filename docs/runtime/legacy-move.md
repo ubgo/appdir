@@ -189,7 +189,7 @@ func busy(ctx context.Context, w io.Writer, root string) error {
 
 ## Moving across disks
 
-When the old and new homes are on different disks (device ids differ, or cannot be read), a rename is impossible, so `MoveLegacy` copies instead. It copies the old folder into `<new>.moving-tmp` (files, folders, symlinks as links, modes kept; sockets and pipes skipped as live state), checks that the copy has the same file count and bytes, runs your `WithLegacyVerify(func(src, dst string) error)` check (for example a database integrity check), writes a `.legacy-move` marker, renames the copy to the new home, renames the old folder to `<old>.moved-<YYYYMMDD>`, removes the marker, and leaves `MOVED.txt` in a new old folder. The old data is kept, never deleted.
+When the old and new homes are on different disks (device ids differ, or cannot be read), a rename is impossible, so `MoveLegacy` copies instead. It copies the old folder into `<new>.moving-tmp` (when the old home itself is a symlink, its target is copied, not the link; inside it files, folders, symlinks as links, modes kept; sockets and pipes skipped as live state), checks that the copy has the same file count and bytes, runs your `WithLegacyVerify(func(src, dst string) error)` check (for example a database integrity check), writes a `.legacy-move` marker, renames the copy to the new home, renames the old folder to `<old>.moved-<YYYYMMDD>`, removes the marker, and leaves `MOVED.txt` in a new old folder. The old data is kept, never deleted.
 
 Crash safety: a same-disk rename is atomic. A crash during the copy leaves `<new>.moving-tmp`, which the next run deletes (it is appdir's own partial copy; the old folder is intact) before copying again. A crash after the copy was renamed into place leaves `.legacy-move` in the new home; the next run sees it and finishes the remaining steps instead of reporting `both-exist`. A crash after the old folder was renamed to `<old>.moved-<date>` leaves `.legacy-move` (holding the old path) in the new home and no old folder; the next run matches that path, removes the marker, writes `MOVED.txt` and reports `moved`, instead of `none` forever. The example runs on one disk, so it shows only the rename path.
 
@@ -228,6 +228,7 @@ The example prints paths relative to its temp root; `MoveResult` and `MOVED.txt`
 
 - Call `MoveLegacy` before `Ensure`, `InitHome` or anything else that creates the new home. Once the new home exists, the result is `both-exist` and nothing moves.
 - Only daemon locks are probed. An old daemon that holds no lock file (only a pid file, say) is not detected; list the lock files it does hold in `DaemonLocks`.
+- An old home that is a symlink to another disk (`~/.pm -> /Volumes/data/pm`) is followed: its contents are copied into the new home, and the link is what gets renamed to `<old>.moved-<date>`, so the data on the other disk stays where it was until you remove it. Before v0.1.1 the copy took the link alone, so the new home pointed back at the old disk.
 - `<new>.moving.lock` stays next to the home after the move, by design: deleting a lock file races with a process that already opened it.
 - A dev build never moves anything, so you cannot try the move with `go run` unless you pass `WithRelease(true)`.
 - `MoveResult.From` and `To` are `omitempty` in JSON; a `none` result with no `WithLegacyHome` has neither.
