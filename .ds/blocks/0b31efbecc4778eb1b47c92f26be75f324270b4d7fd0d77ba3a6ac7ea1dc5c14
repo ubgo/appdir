@@ -1,0 +1,11 @@
+func (d *Dirs) PathIn(k Kind, s Scope) (string, error) {
+	spec, ok := d.kind(k)
+	if !ok {
+		return "", newErr(ErrUnknownKind, "appdir: unknown kind %q", k)
+	}
+	if s != ScopeGlobal && s != ScopeProject {
+		return "", newErr(ErrInvalidOption, "appdir: PathIn needs global or project, got %q", s)
+	}
+	e := d.entryIn(spec, s, false)
+	return e.Path, e.err
+}

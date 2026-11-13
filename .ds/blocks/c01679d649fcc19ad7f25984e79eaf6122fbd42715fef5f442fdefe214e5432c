@@ -1,0 +1,70 @@
+func (d *Dirs) applyPointers() (ignoredDB string, err error) {
+	marker := d.project.Marker
+	cfgSpec, _ := d.kind(KindConfig)
+	localSpec, _ := d.kind(KindConfigLocal)
+	vals := map[string]pointerValue{}
+	for _, f := range []struct {
+		path      string
+		committed bool
+	}{
+		{filepath.Join(marker, filepath.FromSlash(cfgSpec.Path)), true},
+		{filepath.Join(marker, filepath.FromSlash(localSpec.Path)), false},
+	} {
+		if f.path == marker {
+			continue // a dropped config kind
+		}
+		m, err := d.cfg.readConfig(f.path)
+		if isNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return "", fmt.Errorf("read %s: %w", f.path, err)
+		}
+		for _, key := range []string{pointerKeyHome, pointerKeyDB} {
+			v, ok := m[key]
+			if !ok || v == nil {
+				continue
+			}
+			s, ok := v.(string)
+			if !ok {
+				return "", newErr(ErrInvalidOption, "%s: %s must be a string path", f.path, key)
+			}
+			if s == "" {
+				continue
+			}
+			vals[key] = pointerValue{raw: s, file: f.path, committed: f.committed}
+		}
+	}
+
+	if v, ok := vals[pointerKeyHome]; ok {
+		target, err := d.pointerPath(pointerKeyHome, v)
+		if err != nil {
+			return "", err
+		}
+		if !isDir(target) {
+			return "", newErr(ErrPointerMissing, "pointer points to %s, which does not exist; run '%s init --home %s'", target, d.cfg.app, target)
+		}
+		info := d.readHomeInfo(target)
+		if info == nil || info.App != d.cfg.app {
+			return "", newErr(ErrPointerNotHome, "pointer target %s is not a %s home (no home.jsonc with app: %s)", target, d.cfg.app, d.cfg.app)
+		}
+		d.warnPointerChain(target)
+		d.project.Base, d.project.Rule = target, RulePointer
+		d.project.Note = "home: pointer in " + v.file
+		d.targetConfig = target
+	}
+	if v, ok := vals[pointerKeyDB]; ok {
+		if d.profile != d.cfg.releaseProfile {
+			return v.file, nil
+		}
+		target, err := d.pointerPath(pointerKeyDB, v)
+		if err != nil {
+			return "", err
+		}
+		if !isDir(filepath.Dir(target)) {
+			return "", newErr(ErrPointerMissing, "pointer points to %s, which does not exist", filepath.Dir(target))
+		}
+		d.dbPointer = target
+	}
+	return "", nil
+}

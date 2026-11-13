@@ -1,0 +1,67 @@
+func (d *Dirs) GitignoreBlock() string {
+	ignored := map[string]bool{}
+	for _, p := range d.cfg.gitIgnore {
+		ignored[strings.TrimSuffix(p, "/")] = true
+	}
+	var lines []string
+	seen := map[string]bool{}
+	add := func(l string) {
+		if !seen[l] {
+			seen[l] = true
+			lines = append(lines, l)
+		}
+	}
+	addParents := func(p string) {
+		segs := strings.Split(p, "/")
+		for i := 0; i < len(segs)-1; i++ {
+			if strings.ContainsAny(segs[i], "*?[") {
+				return
+			}
+			add("!" + strings.Join(segs[:i+1], "/") + "/")
+		}
+	}
+	// The .gitignore itself first, as in the standard's block.
+	ordered := make([]KindSpec, 0, len(d.kinds))
+	for _, k := range d.kinds {
+		if k.Name == KindGitignore {
+			ordered = append([]KindSpec{k}, ordered...)
+		} else {
+			ordered = append(ordered, k)
+		}
+	}
+	for _, k := range ordered {
+		if k.Git != GitCommit || ignored[k.Path] {
+			continue
+		}
+		addParents(k.Path)
+		if k.Type == TypeFolder {
+			add("!" + k.Path + "/")
+			add("!" + k.Path + "/**")
+		} else {
+			add("!" + k.Path)
+		}
+	}
+	for _, p := range d.cfg.gitCommit {
+		if ignored[strings.TrimSuffix(p, "/")] {
+			continue
+		}
+		addParents(p)
+		add("!" + p)
+	}
+	var extra []string
+	for _, p := range d.cfg.gitIgnore {
+		if !seen["!"+p] && !seen["!"+p+"/"] {
+			extra = append(extra, p)
+		}
+	}
+	var b strings.Builder
+	b.WriteString(d.beginMarker() + "\n*\n")
+	for _, l := range lines {
+		b.WriteString(l + "\n")
+	}
+	for _, l := range extra {
+		b.WriteString(l + "\n")
+	}
+	b.WriteString(d.endMarker() + "\n")
+	return b.String()
+}

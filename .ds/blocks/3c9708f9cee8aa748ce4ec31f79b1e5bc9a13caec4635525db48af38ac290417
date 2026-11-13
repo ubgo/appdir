@@ -1,0 +1,40 @@
+func (d *Dirs) resolveHomes() {
+	c := d.cfg
+	d.global = Home{Scope: ScopeGlobal}
+
+	// 1-2. --home, then <APP>_HOME: one home for every scope.
+	if c.homeFlag != "" {
+		d.setOverride(c.homeFlag, RuleFlag, "from --home")
+		return
+	}
+	if raw := d.env(envHome); raw != "" {
+		p, err := c.expandUserPath(raw, d.workDir, d.userHome, d.userHomeErr)
+		switch {
+		case err != nil:
+			err = fmt.Errorf("%s: %w", c.envName(envHome), err)
+			d.global.Rule, d.project.Rule = RuleEnvHome, RuleEnvHome
+			d.globalErr, d.projectErr, d.override = err, err, true
+			return
+		case d.pointsToProd(p):
+			d.warn(WarnEnvPointsToProd, fmt.Sprintf("%s points into the %s home %s; ignored for profile %s", c.envName(envHome), c.releaseProfile, d.prodGlobal(), d.profile))
+		default:
+			d.setOverride(p, RuleEnvHome, "from "+c.envName(envHome))
+			return
+		}
+	}
+	d.warnKindEnvLeaks()
+
+	// 3-4. Global home.
+	if d.userHomeErr != nil {
+		d.global.Rule, d.global.Fallback = RuleDefaults, true
+		d.global.Note = "no home folder"
+		d.globalErr = newErr(ErrNoHome, "no home folder; set %s", c.envName(envHome))
+	} else {
+		dir := filepath.Join(d.userHome, d.Name(c.dirName))
+		d.global = Home{Scope: ScopeGlobal, Base: dir, Data: dir, Rule: RuleGlobal}
+		d.global.Info = d.readHomeInfo(dir)
+	}
+
+	// Project home.
+	d.resolveProject()
+}

@@ -1,0 +1,3 @@
+func (d *Dirs) checkWrite(homeRoot string, info *HomeInfo) error {
+	return d.checkWriteIn(homeRoot, homeRoot, info)
+}

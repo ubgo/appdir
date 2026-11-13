@@ -1,0 +1,10 @@
+func CleanEnv(environ []string, prefix string) []string {
+	p := prefix + "_"
+	out := make([]string, 0, len(environ))
+	for _, kv := range environ {
+		if !strings.HasPrefix(kv, p) {
+			out = append(out, kv)
+		}
+	}
+	return out
+}

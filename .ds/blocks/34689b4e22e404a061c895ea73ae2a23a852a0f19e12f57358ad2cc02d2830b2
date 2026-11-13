@@ -1,0 +1,13 @@
+func (d *Dirs) Socket() (Socket, error) {
+	run, err := d.Path(KindRun)
+	if err != nil {
+		return Socket{}, err
+	}
+	s := Socket{
+		Path:        filepath.Join(run, d.cfg.runFiles[RunSocket]),
+		PointerFile: filepath.Join(run, d.cfg.runFiles[RunSocketFile]),
+		Dir:         run,
+	}
+	sum := sha256.Sum256([]byte(realPath(run)))
+	return d.platformSocket(s, hex.EncodeToString(sum[:])[:socketHashLen]), nil
+}

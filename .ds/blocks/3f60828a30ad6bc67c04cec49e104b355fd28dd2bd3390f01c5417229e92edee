@@ -1,0 +1,32 @@
+func defaultConfig(app string) *config {
+	return &config{
+		app:            app,
+		dirName:        "." + app,
+		prefix:         envPrefixFor(app),
+		mode:           ModeProject,
+		lookup:         WalkUp,
+		profiles:       []Profile{ProfileProd, ProfileDev},
+		releaseProfile: ProfileProd,
+		devProfile:     ProfileDev,
+		readConfig:     defaultConfigReader,
+		layoutVersion:  defaultLayoutVersion,
+		runFiles: map[RunFile]string{
+			RunLock:       "lock",
+			RunDaemonLock: "daemon.lock",
+			RunPID:        app + ".pid",
+			RunDiscovery:  "discovery.json",
+			RunSocket:     app + ".sock",
+			RunSocketFile: "socket",
+		},
+		socketMaxLen: defaultSocketMaxLen,
+		dirPerm:      defaultDirPerm,
+		filePerm:     defaultFilePerm,
+		tempFallback: true,
+		cacheTag:     true,
+		testGuard:    true,
+		lookupEnv:    os.LookupEnv,
+		homeDir:      os.UserHomeDir,
+		workDir:      os.Getwd,
+		buildInfo:    debug.ReadBuildInfo,
+	}
+}

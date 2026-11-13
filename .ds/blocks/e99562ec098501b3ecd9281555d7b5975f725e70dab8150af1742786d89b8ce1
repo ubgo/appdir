@@ -1,0 +1,7 @@
+func (d *Dirs) pointsToProd(p string) bool {
+	if d.profile == d.cfg.releaseProfile {
+		return false
+	}
+	g := d.prodGlobal()
+	return g != "" && within(p, g)
+}

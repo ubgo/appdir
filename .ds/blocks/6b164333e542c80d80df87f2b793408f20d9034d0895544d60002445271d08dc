@@ -1,0 +1,45 @@
+func (d *Dirs) ConfigFiles() []ConfigFile {
+	// A config kind the author dropped (WithoutKind) has no file: it is left
+	// out, never listed as the home folder itself.
+	cfgSpec, hasCfg := d.kind(KindConfig)
+	localSpec, hasLocal := d.kind(KindConfigLocal)
+	var out []ConfigFile
+	add := func(base string, home Scope, committable bool) {
+		if base == "" {
+			return
+		}
+		if hasCfg {
+			out = append(out, ConfigFile{Path: filepath.Join(base, filepath.FromSlash(cfgSpec.Path)), Home: home, Committed: committable && inGitWorkTree(base)})
+		}
+		if hasLocal {
+			out = append(out, ConfigFile{Path: filepath.Join(base, filepath.FromSlash(localSpec.Path)), Home: home, Local: true})
+		}
+	}
+	if d.override {
+		add(d.global.Base, ScopeGlobal, false)
+		return out
+	}
+	if d.globalErr == nil {
+		add(d.global.Base, ScopeGlobal, false)
+	}
+	if d.projectErr != nil && d.project.Marker != "" {
+		// A broken pointer: still list the marker's own two files, which
+		// hold the pointer the user has to fix (F11).
+		add(d.project.Marker, ScopeProject, true)
+	}
+	if d.projectErr == nil {
+		add(d.project.Marker, ScopeProject, true)
+		if d.targetConfig != "" {
+			add(d.targetConfig, ScopeProject, true)
+		}
+		// A non-release profile may keep its own machine settings in
+		// .<app>/profiles/<profile>/config.local.jsonc: gitignored with the
+		// rest of profiles/, read last so it wins over both shared files
+		// (owner, 2026-11-10).
+		if hasLocal && d.profile != d.cfg.releaseProfile && d.project.Data != d.project.Base {
+			l := filepath.Join(d.project.Data, filepath.FromSlash(localSpec.Path))
+			out = append(out, ConfigFile{Path: l, Home: ScopeProject, Local: true, Profile: d.profile})
+		}
+	}
+	return out
+}

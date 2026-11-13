@@ -1,0 +1,14 @@
+func standardKinds(app string) []KindSpec {
+	return []KindSpec{
+		{Name: KindHome, Path: "home.jsonc", Type: TypeFile, Git: GitCommit, Scope: ScopeBoth, Anchored: true},
+		{Name: KindConfig, Path: "config.jsonc", Type: TypeFile, Git: GitCommit, Scope: ScopeBoth, Anchored: true},
+		{Name: KindConfigLocal, Path: "config.local.jsonc", Type: TypeFile, Git: GitIgnore, Scope: ScopeBoth, Anchored: true},
+		{Name: KindGitignore, Path: ".gitignore", Type: TypeFile, Git: GitCommit, Scope: ScopeProject, Anchored: true},
+		{Name: KindShared, Path: "shared", Type: TypeFolder, Git: GitCommit},
+		{Name: KindDB, Path: app + ".db", Type: TypeFile, Git: GitIgnore},
+		{Name: KindBackups, Path: "backups", Type: TypeFolder, Git: GitIgnore},
+		{Name: KindCache, Path: "cache", Type: TypeFolder, Git: GitIgnore, Scope: ScopeGlobal, Disposable: true},
+		{Name: KindRun, Path: "run", Type: TypeFolder, Git: GitIgnore},
+		{Name: KindLogs, Path: "logs", Type: TypeFolder, Git: GitIgnore},
+	}
+}

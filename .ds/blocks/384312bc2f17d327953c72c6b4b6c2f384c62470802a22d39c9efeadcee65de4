@@ -1,0 +1,10 @@
+func (d *Dirs) ChildEnv(environ []string) []string {
+	key := d.cfg.envName(envProfile) + "="
+	out := make([]string, 0, len(environ)+1)
+	for _, kv := range environ {
+		if !strings.HasPrefix(kv, key) {
+			out = append(out, kv)
+		}
+	}
+	return append(out, key+string(d.profile))
+}

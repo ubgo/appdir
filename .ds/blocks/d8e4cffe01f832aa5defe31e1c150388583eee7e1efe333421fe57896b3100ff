@@ -1,0 +1,7 @@
+func (d *Dirs) Path(k Kind) (string, error) {
+	e, err := d.entry(k)
+	if err != nil {
+		return "", err
+	}
+	return e.Path, e.err
+}

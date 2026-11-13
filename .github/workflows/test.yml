@@ -1,0 +1,122 @@
+# Manual only (owner's decision: this workflow runs by hand, never on push,
+# pull request or a schedule). Start it with
+#   gh workflow run test.yml -R ubgo/appdir --ref main
+# or the "Run workflow" button. Do not add other triggers.
+#
+# What it proves that a Linux laptop cannot: the Windows ACL, LockFileEx,
+# MoveFileEx, named-pipe and USERPROFILE paths, the macOS /var ->
+# /private/var temp folders and socket fallback, and a legacy move across two
+# real filesystems (APPDIR_TEST_SECOND_DISK, see docs/testing/ci.md).
+
+name: test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-latest is Apple silicon; macos-15-intel is the Intel image
+        # (macos-13 was retired by GitHub in December 2025).
+        os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # Every step after setup runs even when an earlier one failed
+      # (!cancelled()), so one dispatch reports every failure; the job still
+      # fails if any step did.
+      - name: go vet
+        run: go vet ./...
+
+      # Every package in the module: the library, internal/flock,
+      # internal/jsonclite and the examples (each has its own tests).
+      - name: go test
+        if: ${{ !cancelled() }}
+        run: go test -count=1 ./...
+
+      # The platform tests again with -v, so the log proves they ran on this
+      # OS and did not skip. Allowed skips (optional by design):
+      #   TestWinUNCHome                    \\localhost\<drive>$ share not reachable
+      #   TestDarwinSocketFallbackLiteralTmp run/ path short enough, no fallback
+      # Any other SKIP fails the step, and the OS's own tests (TestWin* on
+      # Windows, TestDarwin* on macOS) must show at least one PASS.
+      - name: platform tests (proof they ran)
+        if: ${{ !cancelled() }}
+        run: |
+          go test -count=1 -v -run '^(TestWin|TestDarwin|TestNoProcessStart$|TestAtomicWriteOverExisting$|TestForTestPointsTempIntoRoot$)' . | tee platform.log
+          go test -count=1 -v -run '^TestTryLockAcrossProcesses$' ./internal/flock/ | tee -a platform.log
+          echo "== summary"
+          grep -E -- '^--- (PASS|SKIP|FAIL)' platform.log
+          allowed='TestWinUNCHome|TestDarwinSocketFallbackLiteralTmp'
+          if grep -E -- '^--- SKIP' platform.log | grep -vE -- "--- SKIP: ($allowed) "; then
+            echo "a platform test skipped that must run on $RUNNER_OS"; exit 1
+          fi
+          for t in TestNoProcessStart TestAtomicWriteOverExisting TestForTestPointsTempIntoRoot TestTryLockAcrossProcesses; do
+            grep -q -- "^--- PASS: $t " platform.log || { echo "$t did not pass"; exit 1; }
+          done
+          case "$RUNNER_OS" in
+            Windows) own=TestWin ;;
+            macOS) own=TestDarwin ;;
+            *) own= ;;
+          esac
+          if [ -n "$own" ] && ! grep -q -- "^--- PASS: $own" platform.log; then
+            echo "no $own test passed on $RUNNER_OS"; exit 1
+          fi
+
+      # The same set as `task test:race:concurrency`: only the packages with
+      # real concurrency. The race detector runs on linux/amd64,
+      # darwin/amd64, darwin/arm64 and windows/amd64, so every runner here.
+      - name: go test -race (concurrency set)
+        if: ${{ !cancelled() }}
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          go test -race -count=1 ./internal/flock/...
+          go test -race -count=1 -run 'Legacy|Lock|Concurren' .
+
+      # A second filesystem for the cross-disk legacy move. The test only runs
+      # when APPDIR_TEST_SECOND_DISK names a folder on another volume than
+      # the temp folder, so it never runs on a laptop by accident.
+      - name: second disk (Linux tmpfs)
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: |
+          sudo mkdir -p /mnt/appdir2
+          sudo mount -t tmpfs -o size=64m tmpfs /mnt/appdir2
+          sudo chown "$(id -u):$(id -g)" /mnt/appdir2
+          echo "APPDIR_TEST_SECOND_DISK=/mnt/appdir2" >> "$GITHUB_ENV"
+      - name: second disk (macOS RAM disk)
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: |
+          dev="$(hdiutil attach -nomount ram://131072 | awk '{print $1}')"
+          diskutil erasevolume HFS+ appdir2 "$dev"
+          echo "APPDIR_TEST_SECOND_DISK=/Volumes/appdir2" >> "$GITHUB_ENV"
+      - name: second disk (Windows D:)
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'D:\')) { Write-Error 'no D: drive on this runner'; exit 1 }
+          New-Item -ItemType Directory -Force -Path 'D:\appdir2' | Out-Null
+          "APPDIR_TEST_SECOND_DISK=D:\appdir2" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "TEMP is $env:TEMP"
+
+      # -v so the log shows the test ran (PASS), not SKIP.
+      - name: cross-disk legacy move
+        if: ${{ !cancelled() }}
+        run: |
+          echo "APPDIR_TEST_SECOND_DISK=$APPDIR_TEST_SECOND_DISK"
+          go test -count=1 -run XDisk -v . | tee xdisk.log
+          grep -q -- '--- PASS: .*XDisk' xdisk.log || { echo "no XDisk test passed"; exit 1; }
+          if grep -q -- '--- SKIP: .*XDisk' xdisk.log; then echo "an XDisk test was skipped"; exit 1; fi

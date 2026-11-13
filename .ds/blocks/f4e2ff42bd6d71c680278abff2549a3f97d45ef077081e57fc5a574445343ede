@@ -1,0 +1,35 @@
+func (c *config) expandUserPath(raw, base, home string, homeErr error) (string, error) {
+	s := raw
+	switch {
+	case s == "~" || strings.HasPrefix(s, "~/") || strings.HasPrefix(s, `~\`):
+		if homeErr != nil {
+			return "", newErr(ErrNoHome, "%q needs a home folder", raw)
+		}
+		s = home + s[1:]
+	case strings.HasPrefix(s, "~"):
+		return "", newErr(ErrInvalidOption, "%q: the ~user form is not supported", raw)
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '$' && i+1 < len(s) && s[i+1] == '{' {
+			end := strings.IndexByte(s[i:], '}')
+			if end < 0 {
+				return "", newErr(ErrInvalidOption, "%q: unclosed ${", raw)
+			}
+			name := s[i+2 : i+end]
+			v, ok := c.getenv(name)
+			if !ok {
+				return "", newErr(ErrEnvVar, "${%s} is not set", name)
+			}
+			b.WriteString(v)
+			i += end
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	p := filepath.FromSlash(b.String())
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(base, p)
+	}
+	return filepath.Clean(p), nil
+}

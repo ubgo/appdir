@@ -1,0 +1,49 @@
+func buildKinds(app string, mode Mode, edits []kindEdit) ([]KindSpec, error) {
+	kinds := standardKinds(app)
+	nameRe := regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+	for _, e := range edits {
+		if !nameRe.MatchString(string(e.name)) {
+			return nil, newErr(ErrInvalidOption, "appdir: kind name %q must match %s", e.name, nameRe)
+		}
+		idx := -1
+		for i := range kinds {
+			if kinds[i].Name == e.name {
+				idx = i
+			}
+		}
+		if e.remove {
+			if idx >= 0 {
+				kinds = append(kinds[:idx], kinds[idx+1:]...)
+			}
+			continue
+		}
+		if idx < 0 {
+			kinds = append(kinds, KindSpec{Name: e.name, Path: string(e.name), Type: TypeFolder, Git: GitIgnore})
+			idx = len(kinds) - 1
+		}
+		for _, o := range e.opts {
+			o(&kinds[idx])
+		}
+	}
+	data := ScopeProject
+	if mode == ModeGlobal {
+		data = ScopeGlobal
+	}
+	for i := range kinds {
+		k := &kinds[i]
+		if err := validKindPath(k.Path); err != nil {
+			return nil, fmt.Errorf("appdir: kind %q: %w", k.Name, err)
+		}
+		switch k.Scope {
+		case "":
+			k.Scope = data
+			if k.Name == KindLogs && mode == ModeProject {
+				k.Scope = ScopeProjectElseGlobal
+			}
+		case ScopeGlobal, ScopeProject, ScopeProjectElseGlobal, ScopeBoth:
+		default:
+			return nil, newErr(ErrInvalidOption, "appdir: kind %q: unknown scope %q", k.Name, k.Scope)
+		}
+	}
+	return kinds, nil
+}
