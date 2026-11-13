@@ -1,0 +1,12 @@
+func (d *Dirs) guardTestPaths() {
+	check := d.guardPath
+	check(d.global.Base)
+	check(d.global.Data)
+	if d.projectErr == nil {
+		check(d.project.Base)
+		check(d.project.Data)
+	}
+	for _, e := range d.Paths() {
+		check(e.Path)
+	}
+}

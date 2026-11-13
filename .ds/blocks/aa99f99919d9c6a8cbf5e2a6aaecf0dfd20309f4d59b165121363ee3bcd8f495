@@ -1,0 +1,42 @@
+func New(app string, opts ...Option) (*Dirs, error) {
+	if !regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`).MatchString(app) {
+		return nil, newErr(ErrInvalidOption, "appdir: app name %q must match ^[a-z0-9][a-z0-9._-]*$", app)
+	}
+	c := defaultConfig(app)
+	for _, o := range opts {
+		o(c)
+	}
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+	kinds, err := buildKinds(app, c.mode, c.kindEdits)
+	if err != nil {
+		return nil, err
+	}
+	d := &Dirs{cfg: c, opts: append([]Option(nil), opts...), kinds: kinds}
+	d.userHome, d.userHomeErr = c.homeDir()
+	if d.userHomeErr == nil {
+		if d.userHome == "" || !filepath.IsAbs(d.userHome) {
+			d.userHomeErr = fmt.Errorf("home folder %q is not absolute", d.userHome)
+		} else {
+			d.userHome = filepath.Clean(d.userHome)
+		}
+	}
+	wd, err := c.workDir()
+	if err != nil {
+		return nil, fmt.Errorf("appdir: working folder: %w", err)
+	}
+	if d.workDir, err = filepath.Abs(wd); err != nil {
+		return nil, fmt.Errorf("appdir: working folder: %w", err)
+	}
+	d.allowProd = d.env(envAllowProd) == "1"
+	d.release, d.releaseReason = detectRelease(c)
+	if err := d.pickProfile(); err != nil {
+		return nil, err
+	}
+	d.resolveHomes()
+	if d.guardActive() {
+		d.guardTestPaths()
+	}
+	return d, nil
+}

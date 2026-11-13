@@ -1,0 +1,97 @@
+func (d *Dirs) moveOne(ctx context.Context, l LegacyHome, from, to string) (MoveResult, error) {
+	res := MoveResult{From: from, To: to}
+	if st, done := legacyState(from, to); done {
+		res.Status = st
+		if st == MoveBothExist {
+			res.Note = "both exist; using " + to
+		}
+		return res, nil
+	}
+	// Something at the new home path that is not a folder (a file, a
+	// dangling link) is refused here, before any move: on Windows the
+	// rename below (MoveFileEx with replace) would put the old folder in
+	// its place and the file would be lost; on Unix rename fails anyway.
+	if _, err := os.Lstat(to); err == nil && !isDir(to) {
+		return res, fmt.Errorf("move %s to %s: %s exists and is not a folder; old home left as is", from, to, to)
+	}
+	if err := d.checkWrite(to, nil); err != nil {
+		return res, err
+	}
+	lockPath := filepath.Join(filepath.Dir(to), filepath.Base(to)+".moving.lock")
+	lk, err := flock.TryLock(lockPath, d.cfg.filePerm)
+	if errors.Is(err, flock.ErrLocked) {
+		return res, newErr(ErrBusy, "another process is moving %s", from)
+	}
+	if err != nil {
+		return res, err
+	}
+	defer func() { _ = lk.Release() }() // closing the fd releases the lock; the file stays by design
+
+	// Re-check under the lock: another process may have finished.
+	if st, done := legacyState(from, to); done {
+		res.Status = st
+		return res, nil
+	}
+	locks := l.DaemonLocks
+	if len(locks) == 0 {
+		locks = []string{defaultDaemonLock}
+	}
+	for _, rel := range locks {
+		held, err := flock.Held(filepath.Join(from, filepath.FromSlash(rel)))
+		if err != nil {
+			return res, err
+		}
+		if held {
+			return res, newErr(ErrBusy, "old home %s is in use by a running daemon; will retry next run", from)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return res, err
+	}
+
+	tmp := to + ".moving-tmp"
+	marker := filepath.Join(to, legacyMarkerFile)
+	switch {
+	case exists(marker):
+		// A crash after tmp -> new: finish the cross-disk steps below.
+	case sameDevice(from, filepath.Dir(to)):
+		if err := os.Rename(from, to); err != nil {
+			return res, fmt.Errorf("move %s to %s: %w", from, to, err)
+		}
+		res.Status, res.Note = MoveDone, "renamed (same disk)"
+		return res, d.leaveMovedNote(from, to)
+	default:
+		if err := os.RemoveAll(tmp); err != nil { // our own partial copy from a crashed run
+			return res, err
+		}
+		n, size, err := copyTree(ctx, from, tmp)
+		if err != nil {
+			return res, fmt.Errorf("copy %s to %s: %w", from, tmp, err)
+		}
+		if n2, size2, err := countTree(tmp); err != nil || n2 != n || size2 != size {
+			return res, fmt.Errorf("verify copy of %s: %d files/%d bytes, copy has %d/%d (%v); old folder left as is", from, n, size, n2, size2, err)
+		}
+		if d.cfg.legacyVerify != nil {
+			if err := d.cfg.legacyVerify(from, tmp); err != nil {
+				return res, fmt.Errorf("verify copy of %s: %w", from, err)
+			}
+		}
+		if err := os.WriteFile(filepath.Join(tmp, legacyMarkerFile), []byte(from+"\n"), d.cfg.filePerm); err != nil {
+			return res, err
+		}
+		if err := os.Rename(tmp, to); err != nil {
+			return res, fmt.Errorf("move %s to %s: %w", tmp, to, err)
+		}
+	}
+	if isDir(from) && !onlyMovedNote(from) {
+		moved := from + ".moved-" + time.Now().UTC().Format("20060102")
+		if err := os.Rename(from, moved); err != nil {
+			return res, fmt.Errorf("rename %s to %s: %w", from, moved, err)
+		}
+	}
+	if err := os.Remove(marker); err != nil && !isNotExist(err) {
+		return res, err
+	}
+	res.Status, res.Note = MoveDone, "copied (other disk); old folder kept as "+from+".moved-<date>"
+	return res, d.leaveMovedNote(from, to)
+}

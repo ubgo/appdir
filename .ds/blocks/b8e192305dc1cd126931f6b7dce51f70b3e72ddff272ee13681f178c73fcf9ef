@@ -1,0 +1,5 @@
+func (d *Dirs) platformSocket(s Socket, hash string) Socket {
+	s.Path = `\\.\pipe\` + d.Name(d.cfg.app) + "-" + currentUser() + "-" + hash
+	s.Fallback, s.Dir = true, ""
+	return s
+}

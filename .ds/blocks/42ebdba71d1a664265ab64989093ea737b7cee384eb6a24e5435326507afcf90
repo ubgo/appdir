@@ -1,0 +1,21 @@
+func (d *Dirs) ceilings() []string {
+	raw := d.env(envCeilingDirs)
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for _, part := range filepath.SplitList(raw) {
+		if part == "" {
+			continue
+		}
+		if isRelativeEntry(part) {
+			continue // warned by warnRelativeCeilings, like git does
+		}
+		p, err := d.cfg.expandUserPath(part, "", d.userHome, d.userHomeErr)
+		if err != nil || !filepath.IsAbs(p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}

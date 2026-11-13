@@ -1,0 +1,18 @@
+func (d *Dirs) findMarker(start string) string {
+	found := ""
+	d.walk(start, func(dir string) bool {
+		cand := filepath.Join(dir, d.cfg.dirName)
+		if isDir(cand) && !d.isGlobalHome(cand) {
+			found = cand
+			return true
+		}
+		if d.cfg.lookup == HereOnly {
+			return true
+		}
+		// A repo root is a wall. Lstat, not Stat: any entry named .git counts,
+		// even a dangling symlink, like repoRoot and inGitWorkTree.
+		_, err := os.Lstat(filepath.Join(dir, gitEntry))
+		return err == nil
+	})
+	return found
+}

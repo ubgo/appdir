@@ -1,0 +1,29 @@
+func detectRelease(c *config) (bool, string) {
+	if c.release != nil {
+		if *c.release {
+			return true, reasonFlag
+		}
+		return false, reasonFlagDev
+	}
+	bi, ok := c.buildInfo()
+	if !ok || bi == nil {
+		return false, reasonNoInfo
+	}
+	v := bi.Main.Version
+	switch {
+	case v == "" || v == develVersion:
+		return false, reasonDevel
+	case !strings.HasPrefix(v, "v"):
+		return false, reasonNotSemver
+	case strings.Contains(v, "+dirty"):
+		return false, reasonDirty
+	case isPseudoVersion(v):
+		return false, reasonPseudo
+	}
+	for _, s := range bi.Settings {
+		if s.Key == settingVCSRev {
+			return false, reasonVCS
+		}
+	}
+	return true, reasonGoInstall
+}

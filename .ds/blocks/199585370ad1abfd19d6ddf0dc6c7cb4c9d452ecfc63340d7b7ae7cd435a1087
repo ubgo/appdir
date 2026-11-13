@@ -1,0 +1,82 @@
+func (d *Dirs) entryIn(spec KindSpec, home Scope, forceTemp bool) Entry {
+	e := Entry{Kind: spec.Name, Home: home, Type: spec.Type, Git: spec.Git}
+	rel := filepath.FromSlash(spec.Path)
+
+	if !spec.Anchored && !forceTemp {
+		if raw := d.env(envPrefixFor(string(spec.Name)) + envKindSuffix); raw != "" {
+			name := d.KindEnv(spec.Name)
+			p, err := d.cfg.expandUserPath(raw, d.workDir, d.userHome, d.userHomeErr)
+			switch {
+			case err != nil:
+				e.Rule, e.err = RuleEnvKind, fmt.Errorf("%s: %w", name, err)
+				e.Error = e.err.Error()
+				return e
+			case d.pointsToProd(p):
+				// warned once in resolveHomes; fall through to the normal rules
+			default:
+				e.Rule, e.homeRoot = RuleEnvKind, p
+				e.Path = p
+				if spec.Type == TypeFile {
+					e.Path = filepath.Join(p, filepath.Base(rel))
+				}
+				e.Note = "from " + name
+				return e
+			}
+		}
+	}
+
+	if spec.Name == KindDB && home == ScopeProject && d.dbPointer != "" && d.projectErr == nil {
+		e.Rule, e.Path, e.homeRoot, e.info, e.infoDir = RulePointer, d.dbPointer, filepath.Dir(d.dbPointer), d.project.Info, d.project.Base
+		e.Note = "db: pointer"
+		return e
+	}
+
+	var h Home
+	var herr error
+	if home == ScopeGlobal {
+		h, herr = d.global, d.globalErr
+	} else {
+		h, herr = d.project, d.projectErr
+	}
+	// The temp fallback and code defaults stand in for a machine with no
+	// $HOME only. A --home or <APP>_HOME that failed to expand is the user's
+	// explicit choice gone wrong: every kind fails with that error rather
+	// than quietly writing somewhere else (F2).
+	noUserHome := herr != nil && home == ScopeGlobal && !d.override
+	if forceTemp || (noUserHome && spec.Disposable && d.cfg.tempFallback) {
+		root := d.tempRoot()
+		e.Rule, e.Fallback, e.homeRoot = RuleTemp, true, root
+		e.Path = filepath.Join(root, rel)
+		e.Note = "temp fallback"
+		return e
+	}
+	if herr != nil {
+		if noUserHome && spec.Anchored {
+			e.Rule, e.Fallback = RuleDefaults, true
+			e.Note = "no home folder; code defaults"
+			return e
+		}
+		// The rule that failed to give a home.
+		e.Rule, e.err = h.Rule, herr
+		switch {
+		case home == ScopeGlobal && !d.override:
+			e.Rule = RuleGlobal
+		case e.Rule == "":
+			e.Rule = RuleProject
+		}
+		e.Error = herr.Error()
+		return e
+	}
+	root := h.Data
+	if spec.Anchored {
+		root = h.Base
+	}
+	// home.jsonc is always read from Base; Data differs for a non-release
+	// profile, so the layout error must name Base (F15).
+	e.Rule, e.Fallback, e.homeRoot, e.info, e.infoDir = h.Rule, h.Fallback, root, h.Info, h.Base
+	e.Path = filepath.Join(root, rel)
+	if h.Note != "" {
+		e.Note = h.Note
+	}
+	return e
+}

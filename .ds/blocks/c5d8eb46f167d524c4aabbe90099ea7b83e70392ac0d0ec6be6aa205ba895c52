@@ -1,0 +1,20 @@
+func (d *Dirs) guardTestPaths() {
+	root, ok := os.LookupEnv(envTestRoot)
+	if !ok || root == "" {
+		root = os.TempDir()
+	}
+	check := func(p string) {
+		if p != "" && !within(p, root) {
+			panic(fmt.Sprintf("appdir: test binary resolved %s outside the test root %s; call appdir.ForTest(t, %q) or pass WithTestGuard(false)", p, root, d.cfg.app))
+		}
+	}
+	check(d.global.Base)
+	check(d.global.Data)
+	if d.projectErr == nil {
+		check(d.project.Base)
+		check(d.project.Data)
+	}
+	for _, e := range d.Paths() {
+		check(e.Path)
+	}
+}

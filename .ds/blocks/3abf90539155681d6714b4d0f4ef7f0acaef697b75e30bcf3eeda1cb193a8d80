@@ -1,0 +1,4 @@
+func (d *Dirs) ForProfile(p Profile) (*Dirs, error) {
+	opts := append(append([]Option(nil), d.opts...), WithProfile(string(p)))
+	return New(d.cfg.app, opts...)
+}

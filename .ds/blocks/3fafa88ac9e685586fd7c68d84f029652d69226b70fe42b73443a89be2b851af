@@ -1,0 +1,23 @@
+func (d *Dirs) MoveLegacy(ctx context.Context) (MoveResult, error) {
+	if len(d.cfg.legacy) == 0 {
+		return MoveResult{Status: MoveNone}, nil
+	}
+	if d.profile != d.cfg.releaseProfile {
+		return MoveResult{Status: MoveSkipped, Note: "profile " + string(d.profile) + " never runs a legacy move"}, nil
+	}
+	if d.override {
+		return MoveResult{Status: MoveSkipped, Note: "home set by --home or " + d.cfg.envName(envHome)}, nil
+	}
+	if d.globalErr != nil {
+		return MoveResult{Status: MoveSkipped, Note: "no home folder"}, nil
+	}
+	to := d.global.Base
+	for _, l := range d.cfg.legacy {
+		from := filepath.Join(d.userHome, l.Dir)
+		if !isDir(from) && !unfinishedMoveFrom(to, from) {
+			continue
+		}
+		return d.moveOne(ctx, l, from, to)
+	}
+	return MoveResult{Status: MoveNone, To: to}, nil
+}

@@ -1,0 +1,26 @@
+func (d *Dirs) walk(start string, visit func(dir string) bool) {
+	ceilings := d.ceilings()
+	dir := start
+	dev, devOK := deviceID(dir)
+	for {
+		if visit(dir) {
+			return
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return
+		}
+		if d.userHomeErr == nil && sameFile(parent, d.userHome) {
+			return
+		}
+		for _, c := range ceilings {
+			if sameFile(parent, c) {
+				return
+			}
+		}
+		if pdev, ok := deviceID(parent); ok && devOK && pdev != dev {
+			return
+		}
+		dir = parent
+	}
+}

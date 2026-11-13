@@ -1,0 +1,18 @@
+func (d *Dirs) Ensure(k Kind) (string, error) {
+	spec, ok := d.kind(k)
+	if !ok {
+		return "", newErr(ErrUnknownKind, "appdir: unknown kind %q", k)
+	}
+	e, _ := d.entry(k)
+	if e.err != nil {
+		return "", e.err
+	}
+	if e.Path == "" {
+		return "", newErr(ErrNoHome, "appdir: %s has no path (%s)", k, e.Note)
+	}
+	path, err := d.ensureEntry(spec, e)
+	if err != nil && spec.Disposable && d.cfg.tempFallback && e.Rule != RuleTemp && isReadOnlyErr(err) {
+		path, err = d.ensureEntry(spec, d.entryIn(spec, e.Home, true))
+	}
+	return path, err
+}

@@ -1,0 +1,15 @@
+func (d *Dirs) VerifyFile(path string) error {
+	fi, err := os.Lstat(path)
+	if err != nil || !isLink(path, fi) {
+		return nil
+	}
+	home := d.homeOf(path)
+	real, err := evalLinks(path)
+	if err != nil {
+		return newErr(ErrSymlinkEscape, "%s is a broken symlink", path)
+	}
+	if !within(real, home) {
+		return newErr(ErrSymlinkEscape, "%s links to %s, outside the home %s", path, real, home)
+	}
+	return nil
+}

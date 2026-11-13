@@ -1,0 +1,15 @@
+func (d *Dirs) EnsureSocketDir() (Socket, error) {
+	s, err := d.Socket()
+	if err != nil {
+		return s, err
+	}
+	switch {
+	case s.Dir == "":
+		return s, nil
+	case !s.Fallback:
+		_, err = d.Ensure(KindRun)
+	default:
+		err = d.ensurePrivateDir(s.Dir)
+	}
+	return s, err
+}

@@ -1,0 +1,25 @@
+func (d *Dirs) ensurePrivateDir(dir string) error {
+	fi, err := os.Lstat(dir)
+	if isNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(dir), d.cfg.dirPerm); err != nil {
+			return fmt.Errorf("create %s: %w", filepath.Dir(dir), err)
+		}
+		if err := os.Mkdir(dir, d.cfg.dirPerm); err != nil && !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("create %s: %w", dir, err)
+		}
+		if err := restrict(dir, d.cfg.dirPerm, true); err != nil {
+			return err
+		}
+		fi, err = os.Lstat(dir)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", dir, err)
+	}
+	if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
+		return newErr(ErrUnsafeTemp, "%s is a symlink or not a folder", dir)
+	}
+	if !ownedByMe(dir) {
+		return newErr(ErrUnsafeTemp, "%s is not owned by you", dir)
+	}
+	return nil
+}

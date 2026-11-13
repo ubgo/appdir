@@ -1,0 +1,53 @@
+func (d *Dirs) pickProfile() error {
+	c := d.cfg
+	check := func(p Profile, from string) error {
+		if !c.knownProfile(p) {
+			return newErr(ErrUnknownProfile, "appdir: %s: unknown profile %q (known: %s)", from, p, joinProfiles(c.profiles))
+		}
+		return nil
+	}
+	byBuild := c.devProfile
+	if d.release {
+		byBuild = c.releaseProfile
+	}
+	switch {
+	case c.profileFlag != "":
+		p := Profile(c.profileFlag)
+		if err := check(p, "--profile"); err != nil {
+			return err
+		}
+		d.profile = p
+	case d.env(envProfile) != "":
+		name := c.envName(envProfile)
+		p := Profile(d.env(envProfile))
+		if err := check(p, name); err != nil {
+			return err
+		}
+		switch {
+		case !d.release && p == c.releaseProfile && !d.allowProd:
+			d.warn(WarnProfileEnvIgnored, fmt.Sprintf("%s=%s ignored by a dev build; set %s=1 too, or pass --profile", name, p, c.envName(envAllowProd)))
+			d.profile = byBuild
+		case d.release && p != c.releaseProfile:
+			d.warn(WarnProfileEnvIgnored, fmt.Sprintf("%s=%s ignored by a release build; pass --profile %s", name, p, p))
+			d.profile = byBuild
+		default:
+			d.profile = p
+		}
+	default:
+		d.profile = byBuild
+	}
+
+	d.daemonProfile = d.profile
+	if c.daemonFlag != "" {
+		d.daemonProfile = Profile(c.daemonFlag)
+		if err := check(d.daemonProfile, "--daemon-profile"); err != nil {
+			return err
+		}
+	} else if v := d.env(envDaemonProfile); v != "" {
+		d.daemonProfile = Profile(v)
+		if err := check(d.daemonProfile, c.envName(envDaemonProfile)); err != nil {
+			return err
+		}
+	}
+	return nil
+}

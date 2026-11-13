@@ -1,0 +1,6 @@
+func (d *Dirs) NameWith(base, sep string) string {
+	if d.profile == d.cfg.releaseProfile {
+		return base
+	}
+	return base + sep + string(d.profile)
+}

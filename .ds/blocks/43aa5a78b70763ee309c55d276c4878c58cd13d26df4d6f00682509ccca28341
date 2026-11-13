@@ -1,0 +1,20 @@
+func (d *Dirs) InitProject(dir string) (string, error) {
+	// A relative dir is relative to the working folder New resolved from
+	// (WithWorkDir), like every other user path, never to whatever the
+	// process cwd happens to be when init runs.
+	abs := filepath.Clean(dir)
+	if !filepath.IsAbs(abs) {
+		abs = filepath.Join(d.workDir, abs)
+	}
+	marker := filepath.Join(abs, d.cfg.dirName)
+	if d.isGlobalHome(marker) {
+		return "", newErr(ErrInvalidOption, "init: %s is the global home, not a project", marker)
+	}
+	if err := d.initHome(marker, ScopeProject); err != nil {
+		return "", err
+	}
+	if _, err := d.writeGitignoreAt(marker); err != nil {
+		return marker, err
+	}
+	return marker, nil
+}

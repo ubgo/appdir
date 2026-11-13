@@ -1,0 +1,176 @@
+version: '3'
+
+# Reusable command runner for the ubgo/appdir repo.
+# Run `task --list` to see all available tasks.
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  test:quick:
+    desc: The fast loop - every test once, no race detector (well under a minute)
+    cmds:
+      - go test -count=1 ./...
+
+  # The race detector only where there is real concurrency: the OS lock and
+  # the legacy-move lock (the rest of the library is single-goroutine).
+  test:race:concurrency:
+    desc: Race tests for the packages with real concurrency (internal/flock, the legacy move lock)
+    cmds:
+      - go test -race -count=1 ./internal/flock/...
+      - go test -race -count=1 -run 'Legacy|Lock|Concurren' .
+
+  test:race:
+    desc: Run all tests with the race detector
+    cmds:
+      - go test -race ./...
+
+  test:coverage:
+    desc: Run all tests with a coverage report
+    cmds:
+      - go test -race -coverprofile=cover.out ./...
+      - go tool cover -html=cover.out -o cover.html
+      - echo "Coverage report written to cover.html"
+
+  vet:
+    desc: Run go vet on every supported OS
+    cmds:
+      - go vet ./...
+      - GOOS=darwin go vet ./...
+      - GOOS=windows go vet ./...
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  tidy:
+    desc: Run go mod tidy
+    cmds:
+      - go mod tidy
+
+  zero-dep-check:
+    desc: Verify the module has zero non-stdlib dependencies
+    cmds:
+      - |
+        if grep -E '^require' go.mod; then
+          echo "appdir has dependencies — forbidden"
+          exit 1
+        fi
+        echo "ok: zero non-stdlib deps"
+
+  build:
+    desc: Build all packages
+    cmds:
+      - go build ./...
+
+  build:cross:
+    desc: Build for linux, darwin and windows (amd64 and arm64)
+    cmds:
+      - GOOS=linux go build ./...
+      - GOOS=darwin GOARCH=amd64 go build ./...
+      - GOOS=darwin GOARCH=arm64 go build ./...
+      - GOOS=windows GOARCH=amd64 go build ./...
+      - GOOS=windows GOARCH=arm64 go build ./...
+
+  demo:
+    desc: Run the demo (pass args after --, e.g. task demo -- --json)
+    cmds:
+      - go run ./examples/demo {{.CLI_ARGS}}
+
+  # FULL gate, run under the machine-wide testlock so two suites never run at
+  # once on this machine. check:run has no desc so it stays off task --list.
+  check:
+    desc: FULL gate - cross-OS vet and build, staticcheck, all tests, race tests where there is concurrency, examples, zero-dep check, docs gate
+    cmds: ['testlock task check:run']
+
+  check:run:
+    cmds:
+      - task: vet
+      - task: build:cross
+      - staticcheck ./...
+      - GOOS=darwin staticcheck ./...
+      - GOOS=windows staticcheck ./...
+      - task: test:quick
+      - task: test:race:concurrency
+      - task: zero-dep-check
+      - task: docs:check
+
+  ci:
+    desc: Run the full local CI suite (vet + race tests + cross build + zero-dep check)
+    cmds:
+      - task: vet
+      - task: test:race
+      - task: build:cross
+      - task: zero-dep-check
+      # - task: lint  # uncomment once golangci-lint config is in place
+
+  # ---- docs gate -------------------------------------------------------
+  # The checkers live in examples/internal/doccheck (standard library only,
+  # same tools as ubgo/workflow). docs:check runs them all plus docsync.
+
+  docs:check:
+    desc: The whole docs gate - no hard wraps, links and anchors resolve, snippets equal their source regions, no forbidden words, docsync references acked
+    cmds:
+      - task: docs:wrap
+      - task: docs:links
+      - task: docs:snippets
+      - task: docs:words
+      - task: docs:drift
+
+  docs:wrap:
+    desc: Fail on hard-wrapped prose in any Markdown file git tracks or would track (every paragraph, bullet and table row is one physical line)
+    cmds:
+      - git ls-files --cached --others --exclude-standard -z -- '*.md' | xargs -0 go run ./examples/internal/doccheck/mdwrap
+
+  docs:links:
+    desc: Fail when a relative link or #anchor in README.md, docs/ or examples/ does not resolve
+    cmds:
+      - go run ./examples/internal/doccheck/mdlinks -root . README.md CHANGELOG.md docs examples
+
+  docs:snippets:
+    desc: 'Fail when a code block marked <!-- snippet: path#region --> in README.md, docs/ or examples/ differs from that region of the source file'
+    cmds:
+      - go run ./examples/internal/doccheck/snippets -root . README.md docs examples
+
+  docs:snippets:sync:
+    desc: Rewrite every stale marked code block in README.md, docs/ and examples/ from its source region
+    cmds:
+      - go run ./examples/internal/doccheck/snippets -root . -sync README.md docs examples
+
+  docs:words:
+    desc: Fail when a forbidden word appears in the public Markdown or any Go file git tracks or would track
+    vars:
+      WORDS: claude,anthropic
+      # An environment variable name the test helper must isolate verbatim
+      # (standard section 13); the name itself is not a mention.
+      ALLOW: CLAUDE_CONFIG_DIR
+    cmds:
+      - git ls-files --cached --others --exclude-standard -z -- '*.go' 'docs/*.md' 'examples/*.md' README.md CHANGELOG.md CONTRIBUTING.md | xargs -0 go run ./examples/internal/doccheck/words -words {{.WORDS}} -allow {{.ALLOW}}
+
+  docs:drift:
+    desc: docsync - fail when code a doc sentence cites (ds:block links) changed since the sentence was acked; needs the ds CLI (go install github.com/ubgo/docsync/cli/cmd/ds@latest)
+    env:
+      DS_UPDATE: 'off'
+    cmds:
+      - 'command -v ds >/dev/null || { echo "docs:drift needs the ds CLI: go install github.com/ubgo/docsync/cli/cmd/ds@latest"; exit 1; }'
+      - ds scan
+      - ds check
+
+  examples:test:
+    desc: Build, vet and test every example program and the doc checkers
+    cmds:
+      - go vet ./examples/...
+      - go test ./examples/...
+
+  clean:
+    desc: Remove build artifacts and coverage reports
+    cmds:
+      - rm -f cover.out cover.html

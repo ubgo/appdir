@@ -1,0 +1,7 @@
+const (
+	defaultLayoutVersion = 1
+	defaultSocketMaxLen  = 100
+	defaultDirPerm       = 0o700
+	defaultFilePerm      = 0o600
+	socketHashLen        = 12
+)

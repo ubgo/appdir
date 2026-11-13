@@ -1,0 +1,15 @@
+func (d *Dirs) Paths() []Entry {
+	var out []Entry
+	for _, spec := range d.kinds {
+		if spec.Scope == ScopeBoth && !d.override {
+			out = append(out, d.entryIn(spec, ScopeGlobal, false))
+			if d.HasProject() || d.projectBroken() { // the broken line shows its error
+				out = append(out, d.entryIn(spec, ScopeProject, false))
+			}
+			continue
+		}
+		e, _ := d.entry(spec.Name)
+		out = append(out, e)
+	}
+	return out
+}

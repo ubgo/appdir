@@ -1,0 +1,39 @@
+func (d *Dirs) writeGitignoreAt(base string) (bool, error) {
+	spec, ok := d.kind(KindGitignore)
+	if !ok || !inGitWorkTree(base) {
+		return false, nil
+	}
+	path := filepath.Join(base, filepath.FromSlash(spec.Path))
+	old, err := os.ReadFile(path)
+	if err != nil && !isNotExist(err) {
+		return true, fmt.Errorf("read %s: %w", path, err)
+	}
+	block := d.GitignoreBlock()
+	lines := strings.SplitAfter(string(old), "\n")
+	begin, end, nb, ne := -1, -1, 0, 0
+	for i, l := range lines {
+		switch strings.TrimRight(l, "\r\n") {
+		case d.beginMarker():
+			begin, nb = i, nb+1
+		case d.endMarker():
+			end, ne = i, ne+1
+		}
+	}
+	var out string
+	switch {
+	case nb == 0 && ne == 0:
+		out = string(old)
+		if out != "" && !strings.HasSuffix(out, "\n") {
+			out += "\n"
+		}
+		out += block
+	case nb == 1 && ne == 1 && begin < end:
+		out = strings.Join(lines[:begin], "") + block + strings.Join(lines[end+1:], "")
+	default:
+		return true, newErr(ErrGitignoreMarkers, "%s: %s / %s missing, doubled or out of order; fix it by hand", path, d.beginMarker(), d.endMarker())
+	}
+	if out == string(old) {
+		return true, nil
+	}
+	return true, d.writeFileAtomic(path, []byte(out), d.cfg.filePerm)
+}

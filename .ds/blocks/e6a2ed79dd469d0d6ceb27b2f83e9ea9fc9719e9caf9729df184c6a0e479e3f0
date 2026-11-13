@@ -1,0 +1,19 @@
+func (d *Dirs) Socket() (Socket, error) {
+	run, err := d.Path(KindRun)
+	if err != nil {
+		return Socket{}, err
+	}
+	s := Socket{
+		Path:        filepath.Join(run, d.cfg.runFiles[RunSocket]),
+		PointerFile: filepath.Join(run, d.cfg.runFiles[RunSocketFile]),
+		Dir:         run,
+	}
+	sum := sha256.Sum256([]byte(realPath(run)))
+	s = d.platformSocket(s, hex.EncodeToString(sum[:])[:socketHashLen])
+	// The fallback folder is resolved here, after New, so New's test guard
+	// never saw it: check it the same way before anyone can create it.
+	if d.guardActive() {
+		d.guardSocketDir(s.Dir)
+	}
+	return s, nil
+}

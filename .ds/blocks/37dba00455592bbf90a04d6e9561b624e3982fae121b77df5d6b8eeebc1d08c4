@@ -1,0 +1,14 @@
+func (d *Dirs) Banner() string {
+	if d.profile == d.cfg.releaseProfile {
+		return ""
+	}
+	where := d.global.Base
+	if where == "" {
+		where = "(no home folder)"
+	} else if d.userHomeErr == nil {
+		if rel, err := filepath.Rel(d.userHome, where); err == nil && !strings.HasPrefix(rel, "..") {
+			where = filepath.Join("~", rel)
+		}
+	}
+	return fmt.Sprintf("[%s] profile: %s → %s", d.cfg.app, d.profile, where)
+}

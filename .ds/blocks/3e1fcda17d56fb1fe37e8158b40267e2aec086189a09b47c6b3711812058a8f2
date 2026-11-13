@@ -1,0 +1,10 @@
+func (d *Dirs) InitHome(path string, s Scope) error {
+	if s != ScopeGlobal && s != ScopeProject {
+		return newErr(ErrInvalidOption, "appdir: InitHome needs global or project, got %q", s)
+	}
+	p, err := d.cfg.expandUserPath(path, d.workDir, d.userHome, d.userHomeErr)
+	if err != nil {
+		return err
+	}
+	return d.initHome(p, s)
+}

@@ -1,0 +1,13 @@
+func (d *Dirs) DaemonDiscovery() (string, Profile, error) {
+	p := d.daemonProfile
+	if p == d.profile {
+		path, err := d.RunPath(RunDiscovery)
+		return path, p, err
+	}
+	other, err := d.ForProfile(p)
+	if err != nil {
+		return "", p, err
+	}
+	path, err := other.RunPath(RunDiscovery)
+	return path, p, err
+}
