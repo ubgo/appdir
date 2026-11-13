@@ -84,3 +84,20 @@ func TestAtomicWriteOverExisting(t *testing.T) {
 		}
 	}
 }
+
+// TestForTestPointsTempIntoRoot: ForTest moves the system temp folder into
+// its root on every OS: TMPDIR for Unix, TMP and TEMP for Windows (Go's
+// os.TempDir reads those there), so a temp fallback never lands in the real
+// temp folder.
+func TestForTestPointsTempIntoRoot(t *testing.T) {
+	root := ForTest(t, "ftapp")
+	want := filepath.Join(root, "tmp")
+	for _, k := range []string{"TMPDIR", "TMP", "TEMP"} {
+		if got := os.Getenv(k); got != want {
+			t.Errorf("%s = %q, want %q", k, got, want)
+		}
+	}
+	if !within(os.TempDir(), root) {
+		t.Errorf("os.TempDir() = %s, outside the ForTest root %s", os.TempDir(), root)
+	}
+}

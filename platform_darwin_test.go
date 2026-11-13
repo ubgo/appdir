@@ -155,3 +155,21 @@ func TestDarwinSocketListensWhereItFits(t *testing.T) {
 	}
 	_ = ln.Close()
 }
+
+// TestDarwinForTestShortRoot: on macOS ForTest roots under /tmp, so a
+// daemon test's socket stays in run/ instead of falling back to the real
+// /tmp (which the guard refuses).
+func TestDarwinForTestShortRoot(t *testing.T) {
+	root := ForTest(t, pdApp)
+	if !strings.HasPrefix(root, "/private/tmp/") {
+		t.Fatalf("ForTest root = %s, want one under /tmp", root)
+	}
+	d, err := New(pdApp, WithRelease(true), WithMode(ModeGlobal), WithWorkDir(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := d.Socket()
+	if err != nil || s.Fallback {
+		t.Fatalf("Socket() = %+v, %v; want it in run/", s, err)
+	}
+}

@@ -64,6 +64,13 @@ func (d *Dirs) moveOne(ctx context.Context, l LegacyHome, from, to string) (Move
 		}
 		return res, nil
 	}
+	// Something at the new home path that is not a folder (a file, a
+	// dangling link) is refused here, before any move: on Windows the
+	// rename below (MoveFileEx with replace) would put the old folder in
+	// its place and the file would be lost; on Unix rename fails anyway.
+	if _, err := os.Lstat(to); err == nil && !isDir(to) {
+		return res, fmt.Errorf("move %s to %s: %s exists and is not a folder; old home left as is", from, to, to)
+	}
 	if err := d.checkWrite(to, nil); err != nil {
 		return res, err
 	}

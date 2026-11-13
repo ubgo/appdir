@@ -1,4 +1,4 @@
-# docsync ledger format=2 extract=1 repo=appdir commit=9a99b7e scanned_at=2026-11-13T05:47:05Z
+# docsync ledger format=2 extract=1 repo=appdir commit=267ab3f scanned_at=2026-11-13T06:12:50Z
 id	repo	kind	file	symbol	lines	hash	owner	stability	env	args
 buildkinds-r6jj6d5s	appdir	func	kinds.go	buildKinds	78-126	0b002b55f5a4f9bf6f2ba16d97aa01460120301f692be1a96871806f0998e78a	@khanakia	stable		id=buildkinds-r6jj6d5s owner=@khanakia stability=stable
 cleanenv-276nsr8w	appdir	func	profile.go	CleanEnv	207-216	46d41a237787a874eb8f43d297fb34bc882c4167d9d4968cef465d910cffad1e	@khanakia	stable		id=cleanenv-276nsr8w owner=@khanakia stability=stable
@@ -26,7 +26,7 @@ dirs-inithome-934qhf2j	appdir	func	ensure.go	Dirs.InitHome	189-198	3e1fcda17d56f
 dirs-initproject-wpmefq6e	appdir	func	ensure.go	Dirs.InitProject	165-184	43aa5a78b70763ee309c55d276c4878c58cd13d26df4d6f00682509ccca28341	@khanakia	stable		id=dirs-initproject-wpmefq6e owner=@khanakia stability=stable
 dirs-lookupproject-cbn3hgm5	appdir	func	resolve.go	Dirs.lookupProject	104-123	522358e20bc75a51abaca1ce7af2f1e976c18ed0fa87ae4bd515e5e8958b309a	@khanakia	stable		id=dirs-lookupproject-cbn3hgm5 owner=@khanakia stability=stable
 dirs-movelegacy-aw98ygmb	appdir	func	legacy.go	Dirs.MoveLegacy	33-55	3fafa88ac9e685586fd7c68d84f029652d69226b70fe42b73443a89be2b851af	@khanakia	stable		id=dirs-movelegacy-aw98ygmb owner=@khanakia stability=stable
-dirs-moveone-9bhmva3m	appdir	func	legacy.go	Dirs.moveOne	58-147	d50d389a6a9ac02641d25c78ba227fdd7ff784240e27f447a34123d7623ab3eb	@khanakia	stable		id=dirs-moveone-9bhmva3m owner=@khanakia stability=stable
+dirs-moveone-9bhmva3m	appdir	func	legacy.go	Dirs.moveOne	58-154	9222710a4158a2838b46ec60d3609d6eee4d5eaae1659af4e7f76f2c16e941b2	@khanakia	stable		id=dirs-moveone-9bhmva3m owner=@khanakia stability=stable
 dirs-namewith-uyg39uh6	appdir	func	profile.go	Dirs.NameWith	156-161	027125b34ba7b9be76cee79b4d415503e399f757466723205e32a13366e31491	@khanakia	stable		id=dirs-namewith-uyg39uh6 owner=@khanakia stability=stable
 dirs-path-asygw3vm	appdir	func	appdir.go	Dirs.Path	238-244	d8e4cffe01f832aa5defe31e1c150388583eee7e1efe333421fe57896b3100ff	@khanakia	stable		id=dirs-path-asygw3vm owner=@khanakia stability=stable
 dirs-pathin-2j8zfrym	appdir	func	appdir.go	Dirs.PathIn	248-258	0b31efbecc4778eb1b47c92f26be75f324270b4d7fd0d77ba3a6ac7ea1dc5c14	@khanakia	stable		id=dirs-pathin-2j8zfrym owner=@khanakia stability=stable
@@ -41,7 +41,7 @@ dirs-tagcache-8cz6ae4w	appdir	func	cachetag.go	Dirs.tagCache	12-24	c48460d77e958
 dirs-verifyfile-2nyrnmv3	appdir	func	symlink.go	Dirs.VerifyFile	12-26	e22b9cec8ebca29bf45fdc7a7e6f07248a990aa2c5301bab1c098fb91e2f4235	@khanakia	stable		id=dirs-verifyfile-2nyrnmv3 owner=@khanakia stability=stable
 dirs-walk-5dgdy46j	appdir	func	resolve.go	Dirs.walk	164-202	d3cfbc90d37fef05320d996612391a19d4074b241288f80423cbf92a9c11daff	@khanakia	stable		id=dirs-walk-5dgdy46j owner=@khanakia stability=stable
 dirs-writegitignoreat-6hp578mz	appdir	func	gitignore.go	Dirs.writeGitignoreAt	110-148	9840c51a91806145a1fe92a263df9239a262511bd046dd85d95746b97871f437	@khanakia	stable		id=dirs-writegitignoreat-6hp578mz owner=@khanakia stability=stable
-fortest-56v4yh8s	appdir	func	fortest.go	ForTest	16-68	36252aa4c1af0c08289e6f62f66c08ba9e361d3c8ce2ffa88cb36fcb5cfcffd1	@khanakia	stable		id=fortest-56v4yh8s owner=@khanakia stability=stable
+fortest-56v4yh8s	appdir	func	fortest.go	ForTest	18-72	d667bffe645d32e2914695895a6dc2207498ddea13643ee7857dd5e5c567d6ce	@khanakia	stable		id=fortest-56v4yh8s owner=@khanakia stability=stable
 linkedworktreemain-xwtqp3tk	appdir	func	resolve.go	linkedWorktreeMain	312-338	f49c449f7accd6c7c3cd995391a9740a7eb39d4274a44836a84b0f25d98c3fd4	@khanakia	stable		id=linkedworktreemain-xwtqp3tk owner=@khanakia stability=stable
 new-mes9nm7s	appdir	func	appdir.go	New	97-138	aa99f99919d9c6a8cbf5e2a6aaecf0dfd20309f4d59b165121363ee3bcd8f495	@khanakia	stable		id=new-mes9nm7s owner=@khanakia stability=stable
 portablepointer-cuc25d5h	appdir	func	pointer.go	portablePointer	143-155	302fa063bae2847ace7e8f7749f8430bcd9df8ed11bb4891c2efd44d9ca319ec	@khanakia	stable		id=portablepointer-cuc25d5h owner=@khanakia stability=stable

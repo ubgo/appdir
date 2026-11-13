@@ -9,6 +9,7 @@ package appdir
 // helper here starts with "pw".
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -340,5 +341,46 @@ func TestWinNamedPipeShape(t *testing.T) {
 	}
 	if paths[0] == paths[1] {
 		t.Errorf("two homes share the pipe %s", paths[0])
+	}
+}
+
+// TestWinDeviceIDMissingPath: a path that does not exist has no device id
+// (as on Unix), so the walk-up from a missing folder still climbs; a folder
+// that exists reports its volume serial, the same number volumeSerial gives.
+func TestWinDeviceIDMissingPath(t *testing.T) {
+	root := rxRoot(t)
+	if id, ok := deviceID(filepath.Join(root, "missing", "deeper")); ok {
+		t.Errorf("deviceID(missing) = %d, true; want no id", id)
+	}
+	id, ok := deviceID(root)
+	if !ok {
+		t.Fatalf("deviceID(%s) = no id", root)
+	}
+	if vs, ok := volumeSerial(root); !ok || vs != id {
+		t.Errorf("volumeSerial(%s) = %d, %v; deviceID = %d", root, vs, ok, id)
+	}
+}
+
+// TestWinMoveLegacyKeepsFileAtNewHome: a file where the new home goes is
+// never replaced by the old folder (MoveFileEx would replace it).
+func TestWinMoveLegacyKeepsFileAtNewHome(t *testing.T) {
+	root := rxRoot(t)
+	home := filepath.Join(root, "user")
+	old := filepath.Join(home, ".pwold")
+	rxWrite(t, filepath.Join(old, "data.txt"), "old data")
+	to := filepath.Join(home, "."+pwApp)
+	rxWrite(t, to, "a file")
+	d, err := New(pwApp, pwOpts(home, home, WithMode(ModeGlobal), WithLegacyHome(LegacyHome{Dir: ".pwold"}))...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.MoveLegacy(context.Background()); err == nil {
+		t.Fatal("MoveLegacy over a file at the new home: no error")
+	}
+	if b, err := os.ReadFile(to); err != nil || string(b) != "a file" {
+		t.Fatalf("file at the new home = %q, %v; want it untouched", b, err)
+	}
+	if b, err := os.ReadFile(filepath.Join(old, "data.txt")); err != nil || string(b) != "old data" {
+		t.Fatalf("old home changed: %q, %v", b, err)
 	}
 }

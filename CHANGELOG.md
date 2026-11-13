@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Windows: the project walk-up no longer stops at the first existing parent when it starts in a folder that does not exist yet (a worktree-only subfolder looked up in the main checkout). A missing folder now has no volume id, as on Unix; a folder that cannot be opened gets its volume's real serial instead of a made-up one.
+- Windows: `MoveLegacy` no longer replaces a file that sits where the new home goes (MoveFileEx replaced it with the old folder); like on Unix it fails and leaves both alone.
+- `ForTest` also points `TMP` and `TEMP` into its root, so on Windows the temp fallback no longer lands in the real `%TEMP%`. On macOS its root is under `/tmp`, so a daemon test's socket fits in `run/` instead of falling back to the real `/tmp` and tripping the guard.
 - `MoveLegacy` across disks now follows an old home that is itself a symlink (`~/.<old>` linked to another disk) and copies its contents. Before, the copy took the link alone: the new home became a link back to the old disk, nothing was moved, and the result still said `copied (other disk)`, so deleting the old data afterwards lost it.
 
 ### Added

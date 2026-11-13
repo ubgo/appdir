@@ -35,18 +35,23 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Every step after setup runs even when an earlier one failed
+      # (!cancelled()), so one dispatch reports every failure; the job still
+      # fails if any step did.
       - name: go vet
         run: go vet ./...
 
       # Every package in the module: the library, internal/flock,
       # internal/jsonclite and the examples (each has its own tests).
       - name: go test
+        if: ${{ !cancelled() }}
         run: go test -count=1 ./...
 
       # The same set as `task test:race:concurrency`: only the packages with
       # real concurrency. The race detector runs on linux/amd64,
       # darwin/amd64, darwin/arm64 and windows/amd64, so every runner here.
       - name: go test -race (concurrency set)
+        if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
         run: |
@@ -57,20 +62,20 @@ jobs:
       # when APPDIR_TEST_SECOND_DISK names a folder on another volume than
       # the temp folder, so it never runs on a laptop by accident.
       - name: second disk (Linux tmpfs)
-        if: runner.os == 'Linux'
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
         run: |
           sudo mkdir -p /mnt/appdir2
           sudo mount -t tmpfs -o size=64m tmpfs /mnt/appdir2
           sudo chown "$(id -u):$(id -g)" /mnt/appdir2
           echo "APPDIR_TEST_SECOND_DISK=/mnt/appdir2" >> "$GITHUB_ENV"
       - name: second disk (macOS RAM disk)
-        if: runner.os == 'macOS'
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
         run: |
           dev="$(hdiutil attach -nomount ram://131072 | awk '{print $1}')"
           diskutil erasevolume HFS+ appdir2 "$dev"
           echo "APPDIR_TEST_SECOND_DISK=/Volumes/appdir2" >> "$GITHUB_ENV"
       - name: second disk (Windows D:)
-        if: runner.os == 'Windows'
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
         shell: pwsh
         run: |
           if (-not (Test-Path 'D:\')) { Write-Error 'no D: drive on this runner'; exit 1 }
@@ -80,6 +85,7 @@ jobs:
 
       # -v so the log shows the test ran (PASS), not SKIP.
       - name: cross-disk legacy move
+        if: ${{ !cancelled() }}
         run: |
           echo "APPDIR_TEST_SECOND_DISK=$APPDIR_TEST_SECOND_DISK"
           go test -count=1 -run XDisk -v . | tee xdisk.log

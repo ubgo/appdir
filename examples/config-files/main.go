@@ -336,5 +336,5 @@ func exists(p string) bool {
 // rel replaces the temp root in s with $TMP, so the output reads the same on
 // every run.
 func (ex *example) rel(s string) string {
-	return strings.ReplaceAll(s, ex.root, tmpLabel)
+	return filepath.ToSlash(strings.ReplaceAll(s, ex.root, tmpLabel))
 }

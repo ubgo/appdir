@@ -326,5 +326,5 @@ func (s sandbox) verdict(access appdir.DBAccess, err error) string {
 
 // clean drops the temp root from a message, for the same reason.
 func (s sandbox) clean(msg string) string {
-	return strings.ReplaceAll(msg, s.root+string(filepath.Separator), "")
+	return filepath.ToSlash(strings.ReplaceAll(msg, s.root+string(filepath.Separator), ""))
 }

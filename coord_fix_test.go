@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -53,6 +54,9 @@ func TestFixX2_WalkStopsAtCeilingStart(t *testing.T) {
 // back outside the test root (the literal /tmp folder) is refused with a
 // panic before anything can create it, the same as every other path.
 func TestFixX3_GuardCoversSocketFallback(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a Windows named pipe has no fallback folder to guard")
+	}
 	root := rxRoot(t)
 	home := filepath.Join(root, "user")
 	rxMkdir(t, home)
@@ -81,7 +85,12 @@ func TestFixX3_GuardCoversSocketFallback(t *testing.T) {
 		})
 	}
 
-	// With the fallback inside the root (XDG_RUNTIME_DIR), nothing panics.
+	// With the fallback inside the root (XDG_RUNTIME_DIR, Linux only),
+	// nothing panics. macOS has no such variable: its fallback is always
+	// the literal /tmp.
+	if runtime.GOOS != "linux" {
+		return
+	}
 	xdg := filepath.Join(root, "xdg")
 	rxMkdir(t, xdg)
 	d, err = New(cxApp, rxHome(home), WithWorkDir(home), rxEnv(map[string]string{"XDG_RUNTIME_DIR": xdg}),

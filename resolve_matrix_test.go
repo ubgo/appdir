@@ -678,7 +678,9 @@ func TestResolveExpandUserPath(t *testing.T) {
 		{"${A", "", ErrInvalidOption},
 		{"$A/x", filepath.Join(base, "$A", "x"), nil},
 		{"rel/../x", filepath.Join(base, "x"), nil},
-		{"/abs//x/", filepath.Clean("/abs/x"), nil},
+		// Rooted at the base's volume: on Windows "/abs" alone has no drive
+		// and is not absolute, so it would be joined to base.
+		{filepath.VolumeName(base) + "/abs//x/", filepath.Clean(filepath.VolumeName(base) + "/abs/x"), nil},
 	}
 	for _, r := range rows {
 		t.Run(r.raw, func(t *testing.T) {
@@ -1130,7 +1132,9 @@ func TestResolveProfileHomes(t *testing.T) {
 // step 4, 4.7 step 4).
 func TestResolveNoHomeMatrix(t *testing.T) {
 	tmp := t.TempDir()
-	t.Setenv("TMPDIR", tmp) // keeps the temp fallback inside the test root
+	for _, k := range []string{"TMPDIR", "TMP", "TEMP"} { // TMP and TEMP on Windows
+		t.Setenv(k, tmp) // keeps the temp fallback inside the test root
+	}
 	root, err := filepath.EvalSymlinks(tmp)
 	if err != nil {
 		t.Fatal(err)
@@ -1510,7 +1514,8 @@ func TestResolveSymlinkedHome(t *testing.T) {
 // outside the test root panics instead of touching a real home.
 func TestResolveTestGuard(t *testing.T) {
 	root := trRoot(t)
-	outside := string(filepath.Separator) + filepath.Join("tr-not-a-temp-folder", "home")
+	// On Windows a path needs a drive to be absolute: use the root's.
+	outside := filepath.VolumeName(root) + string(filepath.Separator) + filepath.Join("tr-not-a-temp-folder", "home")
 	t.Run("panics outside the test root", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r == nil || !strings.Contains(r.(string), "outside the test root") {

@@ -1379,7 +1379,16 @@ func TestLayoutCacheTag(t *testing.T) {
 
 // tlTempRoot is the temp fallback folder for tlApp under tmp.
 func tlTempRoot(tmp string) string {
-	return filepath.Join(tmp, tlApp+"-"+strconv.Itoa(os.Getuid()))
+	return filepath.Join(tmp, tlApp+"-"+currentUser())
+}
+
+// tlSetTemp points the system temp folder at dir on every OS: TMPDIR on
+// Unix, TMP and TEMP on Windows (what os.TempDir reads there).
+func tlSetTemp(t *testing.T, dir string) {
+	t.Helper()
+	for _, k := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(k, dir)
+	}
 }
 
 // tlReadOnlyHome makes the user home read-only and restores it at cleanup.
@@ -1399,7 +1408,7 @@ func tlReadOnlyHome(t *testing.T, fx tlFix) {
 func TestLayoutTempFallback(t *testing.T) {
 	t.Run("read-only home: disposable kind falls back to temp", func(t *testing.T) {
 		fx := tlNewFix(t)
-		t.Setenv("TMPDIR", fx.root)
+		tlSetTemp(t, fx.root)
 		tlReadOnlyHome(t, fx)
 		d := fx.tlNew(t, WithMode(ModeGlobal))
 		p, err := d.Ensure(KindCache)
@@ -1425,7 +1434,7 @@ func TestLayoutTempFallback(t *testing.T) {
 	})
 	t.Run("WithTempFallback(false) names the folder and the env vars", func(t *testing.T) {
 		fx := tlNewFix(t)
-		t.Setenv("TMPDIR", fx.root)
+		tlSetTemp(t, fx.root)
 		tlReadOnlyHome(t, fx)
 		_, err := fx.tlNew(t, WithMode(ModeGlobal), WithTempFallback(false)).Ensure(KindCache)
 		if err == nil {
@@ -1442,7 +1451,7 @@ func TestLayoutTempFallback(t *testing.T) {
 	})
 	t.Run("no user home: disposable kind uses temp", func(t *testing.T) {
 		fx := tlNewFix(t)
-		t.Setenv("TMPDIR", fx.root)
+		tlSetTemp(t, fx.root)
 		d := fx.tlNew(t, WithHomeDir(func() (string, error) { return "", errors.New("no home") }))
 		p, err := d.Ensure(KindCache)
 		if err != nil || p != filepath.Join(tlTempRoot(fx.root), "cache") {
@@ -1451,7 +1460,7 @@ func TestLayoutTempFallback(t *testing.T) {
 	})
 	t.Run("temp fallback folder that is a symlink is ErrUnsafeTemp", func(t *testing.T) {
 		fx := tlNewFix(t)
-		t.Setenv("TMPDIR", fx.root)
+		tlSetTemp(t, fx.root)
 		tlReadOnlyHome(t, fx)
 		evil := filepath.Join(fx.root, "evil")
 		tlMkdir(t, evil)
@@ -1468,7 +1477,7 @@ func TestLayoutTempFallback(t *testing.T) {
 	})
 	t.Run("temp fallback path that is a file is ErrUnsafeTemp", func(t *testing.T) {
 		fx := tlNewFix(t)
-		t.Setenv("TMPDIR", fx.root)
+		tlSetTemp(t, fx.root)
 		tlWrite(t, tlTempRoot(fx.root), "x", 0o600)
 		d := fx.tlNew(t, WithHomeDir(func() (string, error) { return "", errors.New("no home") }))
 		if _, err := d.Ensure(KindCache); !errors.Is(err, ErrUnsafeTemp) {
@@ -1540,7 +1549,7 @@ func TestLayoutWriteFailures(t *testing.T) {
 		fx := tlNewFix(t)
 		locked := filepath.Join(fx.root, "locked")
 		tlMkdir(t, locked)
-		t.Setenv("TMPDIR", filepath.Join(locked, "tmp"))
+		tlSetTemp(t, filepath.Join(locked, "tmp"))
 		ro(t, locked)
 		// No user home: the cache goes straight to the temp fallback. New's
 		// test guard root is TMPDIR, which no path here is inside, so the

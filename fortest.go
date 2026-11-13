@@ -3,19 +3,21 @@ package appdir
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 // ForTest isolates a test from the developer's real homes (standard section
 // 13): it points HOME, USERPROFILE, <APP>_HOME, XDG_*, CLAUDE_CONFIG_DIR,
-// CODEX_HOME and TMPDIR into a temp root, unsets <APP>_PROFILE and the GIT_*
+// CODEX_HOME and the temp folder (TMPDIR, and TMP and TEMP, which Windows
+// reads) into a temp root, unsets <APP>_PROFILE and the GIT_*
 // variables that leak a parent repo, and sets APPDIR_TEST_ROOT so New panics
 // on any path outside it. Returns the root.
 // ds:def id=fortest-56v4yh8s owner=@khanakia stability=stable
 func ForTest(t testing.TB, app string) string {
 	t.Helper()
-	root := t.TempDir()
+	root := testTempRoot(t)
 	if r, err := filepath.EvalSymlinks(root); err == nil {
 		root = r
 	}
@@ -32,6 +34,8 @@ func ForTest(t testing.TB, app string) string {
 		"CLAUDE_CONFIG_DIR": filepath.Join(root, "agent-config"),
 		"CODEX_HOME":        filepath.Join(root, "codex"),
 		"TMPDIR":            filepath.Join(root, "tmp"),
+		"TMP":               filepath.Join(root, "tmp"),
+		"TEMP":              filepath.Join(root, "tmp"),
 		envTestRoot:         root,
 	}
 	for k, v := range set {
@@ -65,4 +69,21 @@ func ForTest(t testing.TB, app string) string {
 		}
 	}
 	return root
+}
+
+// testTempRoot is t.TempDir(), except on macOS, where it is a fresh folder
+// under /tmp removed at the end of the test. macOS's $TMPDIR is long
+// (/var/folders/xx/.../T/), so under t.TempDir() run/<app>.sock rarely fits
+// in WithSocketMaxLen and the socket falls back to the real /tmp, which the
+// test guard refuses; a root under /tmp keeps the socket in run/.
+func testTempRoot(t testing.TB) string {
+	if runtime.GOOS != "darwin" {
+		return t.TempDir()
+	}
+	dir, err := os.MkdirTemp("/tmp", "appdir-test-") // literally /tmp, as the socket fallback
+	if err != nil {
+		return t.TempDir()
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) }) // our own test folder
+	return dir
 }

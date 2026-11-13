@@ -119,6 +119,7 @@ func checkFile(w io.Writer, root, file string, sync bool) (int, error) {
 		return 0, err
 	}
 	rel, _ := filepath.Rel(root, file)
+	rel = filepath.ToSlash(rel) // the same report on every OS
 	lines := strings.Split(string(b), "\n")
 	problems, changed := 0, false
 	report := func(line int, format string, a ...any) {

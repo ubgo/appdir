@@ -53,7 +53,7 @@ func migrate(ctx context.Context, d *appdir.Dirs) (appdir.MoveResult, error) {
 
 ## Step 3 — Move on the first run
 
-The steps ([moveOne](ds:block?id=dirs-moveone-9bhmva3m)): take `<parent>/<base(new)>.moving.lock` with an OS lock (non-blocking; held means another process is moving, `ErrBusy`); check again under the lock; probe each daemon lock in the old home without creating it (held → `ErrBusy`); on the same disk, one `rename(old, new)`; then recreate the old folder holding only `MOVED.txt` (`moved to <new>`). The result is `moved` with `From`, `To` and a note. The next run sees an old folder holding only `MOVED.txt` and reports `already`.
+The steps ([moveOne](ds:block?id=dirs-moveone-9bhmva3m)): refuse when something that is not a folder (a file, a dangling link) sits at the new home path; take `<parent>/<base(new)>.moving.lock` with an OS lock (non-blocking; held means another process is moving, `ErrBusy`); check again under the lock; probe each daemon lock in the old home without creating it (held → `ErrBusy`); on the same disk, one `rename(old, new)`; then recreate the old folder holding only `MOVED.txt` (`moved to <new>`). The result is `moved` with `From`, `To` and a note. The next run sees an old folder holding only `MOVED.txt` and reports `already`.
 
 <!-- snippet: examples/legacy-move/main.go#first -->
 ```go

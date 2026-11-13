@@ -395,5 +395,9 @@ func (ex *example) write(dir, name, body string) error {
 // rel replaces the temp root in s with $TMP, so the output reads the same on
 // every run.
 func (ex *example) rel(s string) string {
-	return strings.ReplaceAll(s, ex.root, tmpLabel)
+	if os.PathSeparator == '\\' {
+		// Windows: undo the %q escaping of a quoted path ("C:\\x") first.
+		s = strings.ReplaceAll(s, `\\`, `\`)
+	}
+	return filepath.ToSlash(strings.ReplaceAll(s, ex.root, tmpLabel))
 }

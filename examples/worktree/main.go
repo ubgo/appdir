@@ -271,5 +271,5 @@ func show(root, p string) string {
 
 // hide removes the temp root from a message for stable output.
 func hide(root, msg string) string {
-	return strings.ReplaceAll(msg, root+string(filepath.Separator), "")
+	return filepath.ToSlash(strings.ReplaceAll(msg, root+string(filepath.Separator), ""))
 }

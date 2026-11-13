@@ -86,6 +86,10 @@ func readOnlyHome(w io.Writer, root, work string) error {
 		fmt.Fprintln(w, "skipped: running as root, folder permissions do not apply")
 		return nil
 	}
+	if runtime.GOOS == "windows" {
+		fmt.Fprintln(w, "skipped: Windows has no read-only folder mode")
+		return nil
+	}
 	home := filepath.Join(root, readOnlyDir)
 	if err := os.Mkdir(home, readOnly); err != nil {
 		return fmt.Errorf("create read-only home: %w", err)

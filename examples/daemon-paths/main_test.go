@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -13,7 +15,7 @@ import (
 // and the daemon profile rules.
 func TestRun(t *testing.T) {
 	var out bytes.Buffer
-	if err := run(&out, t.TempDir()); err != nil {
+	if err := run(&out, shortRoot(t)); err != nil {
 		t.Fatal(err)
 	}
 	want := []string{
@@ -46,4 +48,26 @@ func TestRun(t *testing.T) {
 			t.Errorf("output lacks %q\n%s", w, out.String())
 		}
 	}
+}
+
+// shortRoot is the test's temp root. On macOS it is a fresh folder under
+// /tmp, made the test root with APPDIR_TEST_ROOT: t.TempDir() there is under
+// the long $TMPDIR, so run/<app>.sock would not fit in 100 bytes and the
+// socket would fall back to the real /tmp, which the guard refuses.
+func shortRoot(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS != "darwin" {
+		return t.TempDir()
+	}
+	dir, err := os.MkdirTemp("/tmp", "appdir-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	real, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("APPDIR_TEST_ROOT", real)
+	return real
 }

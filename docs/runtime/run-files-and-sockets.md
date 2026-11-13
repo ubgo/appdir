@@ -103,7 +103,11 @@ func socketFallback(w io.Writer, s sandbox) error {
 	if err := os.MkdirAll(xdg, 0o700); err != nil {
 		return err
 	}
-	d, err := s.open(fakeEnv{envRuntimeDir: xdg}, appdir.WithRelease(true), appdir.WithSocketMaxLen(shortMaxLen))
+	// WithTestGuard(false): on macOS the fallback is the real /tmp, outside
+	// the test root, and merely resolving it would panic in a test binary.
+	// This function never creates a folder outside its root (see below).
+	d, err := s.open(fakeEnv{envRuntimeDir: xdg}, appdir.WithRelease(true), appdir.WithSocketMaxLen(shortMaxLen),
+		appdir.WithTestGuard(false))
 	if err != nil {
 		return err
 	}

@@ -3,14 +3,21 @@
 package appdir
 
 import (
+	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unsafe"
 )
 
 // deviceID returns the volume serial number of path, for the
-// stop-at-disk-change rule (the Windows twin of a device id).
+// stop-at-disk-change rule (the Windows twin of a device id). A missing path
+// has no id (ok false), as on Unix: the walk-up starts from a folder that
+// may not exist yet (a worktree-only subfolder mapped into the main
+// checkout) and must still climb to its existing parents. A folder that
+// exists but cannot be opened gets the serial of its volume, the same
+// number GetFileInformationByHandle reports for every other folder there.
 func deviceID(path string) (uint64, bool) {
 	p, err := syscall.UTF16PtrFromString(path)
 	if err != nil {
@@ -20,15 +27,10 @@ func deviceID(path string) (uint64, bool) {
 	h, err := syscall.CreateFile(p, 0, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
 		nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS, 0)
 	if err != nil {
-		vol := filepath.VolumeName(path)
-		if vol == "" {
+		if _, serr := os.Lstat(path); serr != nil {
 			return 0, false
 		}
-		var sum uint64
-		for _, r := range strings.ToUpper(vol) {
-			sum = sum*31 + uint64(r)
-		}
-		return sum, true
+		return volumeSerial(path)
 	}
 	defer func() { _ = syscall.CloseHandle(h) }() // read-only handle
 	var info syscall.ByHandleFileInformation
@@ -36,6 +38,26 @@ func deviceID(path string) (uint64, bool) {
 		return 0, false
 	}
 	return uint64(info.VolumeSerialNumber), true
+}
+
+// volumeSerial returns the serial number of the volume that holds path
+// (drive letter or UNC share), from GetVolumeInformationW on its root.
+func volumeSerial(path string) (uint64, bool) {
+	vol := filepath.VolumeName(path)
+	if vol == "" {
+		return 0, false
+	}
+	root, err := syscall.UTF16PtrFromString(vol + `\`)
+	if err != nil {
+		return 0, false
+	}
+	var serial uint32
+	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("GetVolumeInformationW")
+	r, _, _ := proc.Call(uintptr(unsafe.Pointer(root)), 0, 0, uintptr(unsafe.Pointer(&serial)), 0, 0, 0, 0)
+	if r == 0 {
+		return 0, false
+	}
+	return uint64(serial), true
 }
 
 // ownerUID has no Windows meaning: there is no sudo-to-another-user case.

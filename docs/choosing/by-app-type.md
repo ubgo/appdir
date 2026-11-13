@@ -52,7 +52,7 @@ An app started from a launcher or a file manager: its working folder means nothi
 
 ## Test suite
 
-- Simplest: call `appdir.ForTest(t, app)` at the top of a test. It points `HOME`, `<APP>_HOME`, the XDG variables, `TMPDIR` and the agent config folder variables the standard lists (see SPEC section 10) at a temp root, unsets every other `<APP>_*` variable and the leaking `GIT_*` variables, and returns the root ([Testing setup](../testing/for-test.md#step-3--or-isolate-the-whole-process-with-fortest)).
+- Simplest: call `appdir.ForTest(t, app)` at the top of a test. It points `HOME`, `<APP>_HOME`, the XDG variables, the temp folder (`TMPDIR`, `TMP`, `TEMP`) and the agent config folder variables the standard lists (see SPEC section 10) at a temp root, unsets every other `<APP>_*` variable and the leaking `GIT_*` variables, and returns the root ([Testing setup](../testing/for-test.md#step-3--or-isolate-the-whole-process-with-fortest)).
 - In parallel tests (`ForTest` uses `t.Setenv`, which a parallel test cannot call), or when you cannot change the process environment, pass the seams instead: `WithEnv`, `WithHomeDir`, `WithWorkDir`, and `WithBuildInfo` or `WithRelease` ([Testing: seams](../testing/for-test.md#step-2--replace-every-outside-input-with-seams)).
 - Leave the guard on: in a test binary `New` panics when a path lands outside the test root. Turn it off with `WithTestGuard(false)` only for a test that checks real paths on purpose ([Testing: the guard](../testing/for-test.md#step-4--let-the-guard-catch-a-forgotten-isolation)).
 - A test binary is a dev build. Pass `WithRelease(true)` when a test needs the plain folder names.

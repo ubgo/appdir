@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -129,6 +130,10 @@ func readOnlyHome(w io.Writer, root, work string) error {
 		fmt.Fprintln(w, "skipped: running as root, folder permissions do not apply")
 		return nil
 	}
+	if runtime.GOOS == "windows" {
+		fmt.Fprintln(w, "skipped: Windows has no read-only folder mode")
+		return nil
+	}
 	home := filepath.Join(root, readOnlyDir)
 	if err := os.Mkdir(home, readOnly); err != nil {
 		return fmt.Errorf("create read-only home: %w", err)
@@ -176,9 +181,10 @@ func printKinds(w io.Writer, root string, d *appdir.Dirs) {
 // folder and the uid are replaced by placeholders.
 func label(root, s string) string {
 	s = strings.ReplaceAll(s, root+string(filepath.Separator), "")
-	s = strings.ReplaceAll(s, os.TempDir(), tempLabel)
+	// Clean: macOS's $TMPDIR ends in a slash, which would eat the separator.
+	s = strings.ReplaceAll(s, filepath.Clean(os.TempDir()), tempLabel)
 	if uid := os.Getuid(); uid >= 0 {
 		s = strings.ReplaceAll(s, appName+"-"+strconv.Itoa(uid), appName+"-"+uidLabel)
 	}
-	return s
+	return filepath.ToSlash(s)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -25,11 +26,9 @@ const workFolder = "work"
 // the code. It returns the working folder.
 func sandbox(t *testing.T) string {
 	t.Helper()
-	dir, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := shortRoot(t)
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir) // the home on Windows
 	for _, kv := range os.Environ() {
 		if name, _, _ := strings.Cut(kv, "="); strings.HasPrefix(name, envPrefix) {
 			t.Setenv(name, "") // appdir treats set-but-empty as unset
@@ -91,4 +90,30 @@ func TestHomeFlag(t *testing.T) {
 	if r.Global.Base != home || r.Global.Rule != appdir.RuleFlag {
 		t.Errorf("global = %+v, want %s [flag]", r.Global, home)
 	}
+}
+
+// shortRoot is the test's temp root. On macOS it is a fresh folder under
+// /tmp, made the test root with APPDIR_TEST_ROOT: t.TempDir() there is under
+// the long $TMPDIR, so run/<app>.sock would not fit in 100 bytes and the
+// socket would fall back to the real /tmp, which the guard refuses.
+func shortRoot(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS != "darwin" {
+		dir, err := filepath.EvalSymlinks(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return dir
+	}
+	dir, err := os.MkdirTemp("/tmp", "appdir-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	real, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("APPDIR_TEST_ROOT", real)
+	return real
 }

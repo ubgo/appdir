@@ -2,9 +2,14 @@ package main
 
 import (
 	"bytes"
+	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+// modeLine matches a line that quotes a Unix mode such as 0700.
+var modeLine = regexp.MustCompile(`\b0[0-7]{3}\b`)
 
 // TestRun runs the whole example in a test temp folder and checks the lines
 // the layout guides quote.
@@ -40,6 +45,11 @@ func TestRun(t *testing.T) {
 		"home $TMP/shop/.lore has layout 2, this binary knows 1; upgrade lore",
 		"Ensure(run): <nil>",
 	} {
+		// Windows has no mode bits (appdir sets an ACL there), so lines
+		// that quote a mode are checked on Unix only.
+		if runtime.GOOS == "windows" && modeLine.MatchString(want) {
+			continue
+		}
 		if !strings.Contains(got, want) {
 			t.Errorf("output lacks %q\n%s", want, got)
 		}

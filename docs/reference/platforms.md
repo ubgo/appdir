@@ -10,7 +10,7 @@ Files ending in `_unix.go` build on macOS, Linux and the BSDs; `_windows.go` on 
 |---|---|---|---|
 | Global home | `~/.<app>` from `os.UserHomeDir` (`$HOME`) | `%USERPROFILE%\.<app>`, same call | `resolve.go` |
 | Owner-only folders and files | mode bits `0700` / `0600` (`WithPerm`) | a protected ACL granting full access to the current user and SYSTEM only, inherited by children of a folder; the mode bits are ignored | `perm_unix.go`, `perm_windows.go` |
-| Stop the lookup at a disk change | device id from `stat` | volume serial number of the folder; when the folder cannot be opened, a value derived from the drive letter | `sys_unix.go`, `sys_windows.go` |
+| Stop the lookup at a disk change | device id from `stat`; a missing folder has none, so the walk climbs on | volume serial number of the folder; a missing folder has none, as on Unix; a folder that exists but cannot be opened gets its volume's serial from `GetVolumeInformationW` | `sys_unix.go`, `sys_windows.go` |
 | Locks (legacy move, daemon probe) | `flock`, non-blocking | `LockFileEx`, fail immediately | `internal/flock` |
 | Atomic write of `home.jsonc` and `.gitignore` | temp file in the same folder, fsync, rename | same, and the rename retries up to 5 times when antivirus or the indexer holds the target (sharing violation, access denied) | `atomic.go`, `rename_other.go`, `rename_windows.go` |
 | Socket | `run/<app>.sock` when the path fits in `WithSocketMaxLen` (100 bytes); else `$XDG_RUNTIME_DIR/<name>/` on Linux when set, or `/tmp/<name>-<uid>/` (literally `/tmp`, because macOS's `$TMPDIR` is too long) | always a named pipe `\\.\pipe\<name>-<user>-<hash>`; no folder, `Dir` is empty | `run.go`, `socket_unix.go`, `socket_windows.go` |
@@ -30,6 +30,7 @@ Files ending in `_unix.go` build on macOS, Linux and the BSDs; `_windows.go` on 
 - **Permissions are an ACL.** `WithPerm` has no effect; every folder and file appdir creates gets a protected DACL with two entries (the current user's SID and SYSTEM, full access), and inheritance from the parent is turned off. See [Files and permissions](../layout/files-and-permissions.md).
 - **The socket is a named pipe.** `Socket()` always returns `Fallback: true` and an empty `Dir`. The daemon still writes the pipe name into `run/socket`, so clients find it the same way on every OS. See [Run files and sockets](../runtime/run-files-and-sockets.md).
 - **The disk-change stop rule uses the volume serial number** instead of a device id.
+- **A legacy move cannot rename an old home while a file in it is open.** Windows refuses to rename a folder holding an open file, so `MoveLegacy` returns the rename error (access denied) and the next run tries again; on Unix the rename succeeds. List the old daemon's lock files in `DaemonLocks` so a running daemon is reported as `ErrBusy` first.
 - **There is no root guard.** `ErrRootOwned` is never returned and `WithAllowRoot` changes nothing.
 - **The temp fallback has no owner check.** `ErrUnsafeTemp` is returned only for a symlink or a non-folder.
 

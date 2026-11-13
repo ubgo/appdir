@@ -893,6 +893,9 @@ func ttSocketHash(run string) string {
 // user whose project path is so long the socket would not fit run/.
 func TestRuntimeSocket(t *testing.T) {
 	t.Run("short-under-run", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("the socket is always a named pipe on Windows (TestWinNamedPipeShape)")
+		}
 		f := ttWorld(t)
 		// The temp root is deep: raise the limit so run/ fits.
 		d := ttMustNew(t, f, nil, WithRelease(false), WithMode(ModeGlobal), WithSocketMaxLen(4096))
@@ -910,6 +913,9 @@ func TestRuntimeSocket(t *testing.T) {
 		}
 	})
 	t.Run("exact-max-len-stays", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("the socket is always a named pipe on Windows (TestWinNamedPipeShape)")
+		}
 		f := ttWorld(t)
 		p := filepath.Join(f.home, ".ttapp-dev", "run", "ttapp.sock")
 		d := ttMustNew(t, f, nil, WithRelease(false), WithMode(ModeGlobal), WithSocketMaxLen(len(p)))
@@ -1047,6 +1053,9 @@ func TestRuntimeEnsureSocketDir(t *testing.T) {
 		return fi.Mode().Perm()
 	}
 	t.Run("under-run", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("the socket is always a named pipe on Windows (TestWinNamedPipeShape)")
+		}
 		f := ttWorld(t)
 		d := ttMustNew(t, f, nil, WithRelease(false), WithMode(ModeGlobal), WithSocketMaxLen(4096))
 		s, err := d.EnsureSocketDir()
@@ -1443,6 +1452,15 @@ func TestRuntimeLegacyMove(t *testing.T) {
 		d := ttMustNew(t, l.ttFix, nil, WithRelease(true), WithMode(ModeGlobal),
 			WithLegacyHome(LegacyHome{Dir: ttOld, DaemonLocks: []string{"pty/pty.lock"}}))
 		res, err := d.MoveLegacy(ctx)
+		if runtime.GOOS == "windows" {
+			// Windows cannot rename a folder while a file in it is open
+			// (the lock handle above), so the move fails and nothing moves.
+			if err == nil {
+				t.Fatalf("res = %+v; want an error renaming a folder with an open file", res)
+			}
+			l.checkUntouched(t)
+			return
+		}
 		if err != nil || res.Status != MoveDone {
 			t.Fatalf("res = %+v, %v", res, err)
 		}
@@ -1592,7 +1610,7 @@ func TestRuntimeLegacyCrashRecovery(t *testing.T) {
 		if target, err := os.Readlink(filepath.Join(tmp, "link")); err != nil || target != "data.txt" {
 			t.Fatalf("symlink not copied as a link: %q %v", target, err)
 		}
-		if fi, err := os.Stat(filepath.Join(tmp, "notes", "a.md")); err != nil || fi.Mode().Perm() != 0o640 {
+		if fi, err := os.Stat(filepath.Join(tmp, "notes", "a.md")); err != nil || runtime.GOOS != "windows" && fi.Mode().Perm() != 0o640 {
 			t.Fatalf("mode not kept: %v %v", fi, err)
 		}
 		if ttExists(filepath.Join(tmp, "s")) {

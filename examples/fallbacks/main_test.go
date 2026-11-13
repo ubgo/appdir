@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,10 +23,13 @@ func TestRun(t *testing.T) {
 		`global home: rule=defaults fallback=true note="no home folder"`,
 		"config  rule=defaults fallback=true (none: code defaults)",
 		"db      rule=global   error: no home folder; set LORE_HOME",
-		"cache   rule=temp     fallback=true $TMPDIR/lore-<uid>/cache",
 		"cache   rule=global   error: no home folder; set LORE_HOME",
 	}
-	if os.Geteuid() != 0 {
+	// The <uid> placeholder and a read-only folder mode exist only on Unix.
+	if runtime.GOOS != "windows" {
+		want = append(want, "cache   rule=temp     fallback=true $TMPDIR/lore-<uid>/cache")
+	}
+	if os.Geteuid() != 0 && runtime.GOOS != "windows" {
 		want = append(want,
 			"Ensure(db): create ro-home/.lore: mkdir ro-home/.lore: permission denied (set LORE_HOME or LORE_DB_DIR)",
 			"Ensure(cache): create ro-home/.lore/cache: mkdir ro-home/.lore: permission denied (set LORE_HOME or LORE_CACHE_DIR)")
@@ -42,6 +46,9 @@ func TestRun(t *testing.T) {
 // and the fallback root <tmp>/lore-<uid>.
 func privateTemp(t *testing.T) (tmp, fallback string) {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the fallback folder is named by uid and checked by mode, both Unix; the library's own tests cover Windows")
+	}
 	tmp, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
