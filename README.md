@@ -4,7 +4,7 @@ Where a Go tool keeps its things: the global home (`~/.<app>`), the project home
 
 Standard library only; macOS, Linux, Windows. A `*Dirs` is immutable and safe for concurrent use: resolve once, share it everywhere.
 
-> Status: development. The API may change before v0.1.0.
+> Status: v0.1.x, before 1.0: the API may still change between minor versions.
 
 ![appdir architecture](docs/assets/architecture.svg)
 
